@@ -1,0 +1,57 @@
+version: "3.5"
+
+networks:
+  amp_frontend:
+    name: amp_frontend
+    driver: bridge
+  amp_backend:
+    name: amp_backend
+
+services:
+  php72:
+    image: php:7.2-fpm-alpine
+    container_name: amp_php72
+    networks:
+      - amp_backend
+    environment:
+      - PUID=66
+      - PGID=66
+      - TZ=Europe/Berlin
+    volumes:
+      - ./PHP/7.2/Config/:/etc/php/7.2/fpm/conf.d/
+      - ./PHP/7.2/Pools/:/etc/php/7.2/fpm/pool.d/
+      - ./Apache/Projects/:/var/www/html/
+
+  apache:
+    image: httpd:2.4-alpine
+    container_name: amp_apache
+    depends_on:
+      - php72
+      - mysql
+    networks:
+      - amp_frontend
+      - amp_backend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - PUID=66
+      - PGID=66
+      - TZ=Europe/Berlin
+    volumes:
+      - ./Apache/Sites/:/etc/apache2/sites-enabled/
+      - ./Apache/Projects/:/var/www/html/
+
+  mysql:
+    image: mariadb:10.4
+    container_name: amp_mariadb
+    networks:
+      - amp_backend
+    environment:
+      - PUID=66
+      - PGID=66
+      - TZ=Europe/Berlin
+      - MYSQL_ROOT_PASSWORD=r0otTes!
+    volumes:
+      - ./MariaDB/Databases/:/var/lib/mysql
+
