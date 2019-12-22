@@ -1,4 +1,4 @@
-version: "3.5"
+version: "3.7"
 
 networks:
   amp_frontend:
@@ -23,7 +23,8 @@ services:
       - ./Apache/Projects/:/var/www/html/
 
   apache:
-    image: httpd:2.4-alpine
+    #image: httpd:2.4-alpine
+    build: ./Apache
     container_name: amp_apache
     depends_on:
       - php72
@@ -39,8 +40,8 @@ services:
       - PGID=66
       - TZ=Europe/Berlin
     volumes:
-      - ./Apache/Sites/:/etc/apache2/sites-enabled/
-      - ./Apache/Projects/:/var/www/html/
+      - ./Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
+      - ./Apache/Projects/:/usr/local/apache2/htdocs/
 
   mysql:
     image: mariadb:10.4
