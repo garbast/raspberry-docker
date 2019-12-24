@@ -11,6 +11,7 @@ services:
   php72:
     image: php:7.2-fpm-alpine
     container_name: amp_php72
+    restart: always
     networks:
       - amp_backend
     environment:
@@ -29,6 +30,7 @@ services:
     depends_on:
       - php72
       - mysql
+    restart: always
     networks:
       - amp_frontend
       - amp_backend
@@ -46,6 +48,7 @@ services:
   mysql:
     image: mariadb:10.4
     container_name: amp_mariadb
+    restart: always
     networks:
       - amp_backend
     environment:
