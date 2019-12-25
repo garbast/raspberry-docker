@@ -47,7 +47,7 @@ function argon::change_raspi_config() {
   raspi-config nonint do_serial 0
 }
 
-function argon::create_config_file() {
+function argon::create_daemonconfig_file() {
   local daemonconfigfile=$1
   if [[ ! -f ${daemonconfigfile} ]]; then
     # config file for fan speed
@@ -240,18 +240,64 @@ EOT
   chmod 644 ${daemonfanservice}
 }
 
+# Uninstall Script
+function argon::create_uninstall_script() {
+  local removescript=$1
+  local powerbuttonscript=$2
+  local shutdownscript=$3
+  argon::create_file ${removescript}
+
+  cat <<-EOT > ${removescript}
+	#!/bin/bash
+	echo "-------------------------"
+	echo "Argon One Uninstall Tool"
+	echo "-------------------------"
+	echo -n "Press Y to continue:"
+	read -n 1 confirm
+	echo
+	if [ "\$confirm" = "y" ]
+	then
+	    confirm="Y"
+	fi
+
+	if [ "\$confirm" != "Y" ]
+	then
+	    echo "Cancelled"
+	    exit
+	fi
+	if [ -d "/home/${USERNAME}/Desktop" ]; then
+	    sudo rm "/home/${USERNAME}/Desktop/argonone-config.desktop"
+	    sudo rm "/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
+	fi
+	if [ -f ${powerbuttonscript} ]; then
+	    sudo systemctl stop ${DAEMONNAME}.service
+	    sudo systemctl disable ${DAEMONNAME}.service
+	    sudo /usr/bin/python3 ${shutdownscript} uninstall
+	    sudo rm ${powerbuttonscript}
+	    sudo rm ${shutdownscript}
+	    sudo rm ${removescript}
+	    echo "Removed Argon One Services."
+	    echo "Cleanup will complete after restarting the device."
+	fi
+EOT
+
+  chmod 755 ${removescript}
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
   local powerbuttonscript="/usr/bin/${DAEMONNAME}.py"
   local daemonfanservice="/lib/systemd/system/${DAEMONNAME}.service"
+  local removescript="/usr/bin/argonone-uninstall"
 
   argon::install_required_packages
   argon::change_raspi_config
-  argon::create_config_file ${daemonconfigfile}
+  argon::create_daemonconfig_file ${daemonconfigfile}
   argon::create_shutdown_script ${shutdownscript}
   argon::create_powerbutton_script ${powerbuttonscript} ${daemonconfigfile}
   argon::create_fan_service ${daemonfanservice} ${powerbuttonscript}
+  argon::create_uninstall_script ${removescript} ${powerbuttonscript} ${shutdownscript}
 }
 main;
 exit
@@ -261,43 +307,6 @@ daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-argon::create_file $removescript
-
-# Uninstall Script
-echo '#!/bin/bash' >> $removescript
-echo 'echo "-------------------------"' >> $removescript
-echo 'echo "Argon One Uninstall Tool"' >> $removescript
-echo 'echo "-------------------------"' >> $removescript
-echo 'echo -n "Press Y to continue:"' >> $removescript
-echo 'read -n 1 confirm' >> $removescript
-echo 'echo' >> $removescript
-echo 'if [ "$confirm" = "y" ]' >> $removescript
-echo 'then' >> $removescript
-echo '	confirm="Y"' >> $removescript
-echo 'fi' >> $removescript
-echo '' >> $removescript
-echo 'if [ "$confirm" != "Y" ]' >> $removescript
-echo 'then' >> $removescript
-echo '	echo "Cancelled"' >> $removescript
-echo '	exit' >> $removescript
-echo 'fi' >> $removescript
-echo 'if [ -d "/home/$USERNAME/Desktop" ]; then' >> $removescript
-echo '	sudo rm "/home/$USERNAME/Desktop/argonone-config.desktop"' >> $removescript
-echo '	sudo rm "/home/$USERNAME/Desktop/argonone-uninstall.desktop"' >> $removescript
-echo 'fi' >> $removescript
-echo 'if [ -f '$powerbuttonscript' ]; then' >> $removescript
-echo '	sudo systemctl stop '$DAEMONNAME'.service' >> $removescript
-echo '	sudo systemctl disable '$DAEMONNAME'.service' >> $removescript
-echo '	sudo /usr/bin/python3 '$shutdownscript' uninstall' >> $removescript
-echo '	sudo rm '$powerbuttonscript >> $removescript
-echo '	sudo rm '$shutdownscript >> $removescript
-echo '	sudo rm '$removescript >> $removescript
-echo '	echo "Removed Argon One Services."' >> $removescript
-echo '	echo "Cleanup will complete after restarting the device."' >> $removescript
-echo 'fi' >> $removescript
-
-chmod 755 $removescript
 
 argon::create_file $configscript
 
