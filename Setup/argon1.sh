@@ -514,6 +514,21 @@ EOT
   fi
 }
 
+function argon::finish_message() {
+  echo <<EOT
+	****************************
+	 Argon One Setup Completed.
+	****************************
+EOT
+  if [[ -d "/home/$USERNAME/Desktop" ]]; then
+    echo Shortcuts created in your desktop.
+  else
+    echo Use 'argonone-config' to configure fan
+    echo Use 'argonone-uninstall' to uninstall
+  fi
+  echo
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
@@ -532,25 +547,6 @@ function main() {
   argon::create_config_script ${configscript} ${daemonconfigfile}
   argon::start_deamon
   argon::create_desktop_shortcut ${configscript} ${removescript}
+  argon::finish_message
 }
-main;
-exit
-
-powerbuttonscript=/usr/bin/${DAEMONNAME}.py
-daemonconfigfile=/etc/${DAEMONNAME}.conf
-configscript=/usr/bin/argonone-config
-removescript=/usr/bin/argonone-uninstall
-daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-echo <<EOT
-****************************
- Argon One Setup Completed.
-****************************
-EOT
-if [[ -d "/home/$USERNAME/Desktop" ]]; then
-  echo Shortcuts created in your desktop.
-else
-  echo Use 'argonone-config' to configure fan
-  echo Use 'argonone-uninstall' to uninstall
-fi
-echo
+main
