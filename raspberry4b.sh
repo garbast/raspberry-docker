@@ -24,13 +24,16 @@ echo "denyinterfaces usb0" >> /etc/dhcpcd.conf
 apt update
 apt install apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-add-apt-repository "deb https://download.docker.com/linux/ubuntu disco stable"
-# sudo add-apt-repository "deb https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+cat <<EOT >> /etc/apt/sources.list.d/docker-ubuntu-disco.list
+deb https://download.docker.com/linux/ubuntu disco stable
+# deb-src https://download.docker.com/linux/ubuntu disco stable
+EOT
+
 apt install docker-ce
 sudo usermod -aG docker ubuntu
 
 apt install libffi-dev libssl-dev
-apt install -y python python-pip
+apt install -y python python-pip python-dev
 apt remove python-configparser
 pip install docker-compose
 

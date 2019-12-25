@@ -4,11 +4,11 @@ echo "Folder with mounted microsd card (/media/[username]) without slash followe
 read FOLDER
 
 # add repository for raspbian packages
-cat <<EOT >> $FOLDER/writable/etc/apt/sources.list
+cat <<EOT >> $FOLDER/writable/etc/apt/sources.list.d/raspbian-buster.list
 
-deb http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
+deb [arch=armhf] http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
 # Uncomment line below then 'apt-get update' to enable 'apt-get source'
-#deb-src http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
+#deb-src [arch=armhf] http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
 EOT
 
 # add config for usb-tether
