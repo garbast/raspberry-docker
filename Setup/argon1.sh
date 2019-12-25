@@ -5,7 +5,7 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-readonly USERNAME="pi"
+readonly USERNAME="ubuntu"
 readonly DAEMONNAME="argononed"
 
 function argon::create_file() {
@@ -469,6 +469,51 @@ EOT
   chmod 755 ${configscript}
 }
 
+function argon::start_deamon() {
+  systemctl daemon-reload
+  systemctl enable ${DAEMONNAME}.service
+  systemctl start ${DAEMONNAME}.service
+}
+
+# Create Shortcuts
+function argon::create_desktop_shortcut() {
+  local configscript=$1
+  local removescript=$2
+  if [[ -d "/home/${USERNAME}/Desktop" ]]; then
+    wget http://download.argon40.com/ar1config.png -O /usr/share/pixmaps/ar1config.png
+    wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
+
+    local configshortcutfile="/home/${USERNAME}/Desktop/argonone-config.desktop"
+    local uninstallshortcutfile="/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
+
+    cat <<-EOT > ${configshortcutfile}
+		[Desktop Entry]
+		Name=Argon One Configuration
+		Comment=Argon One Configuration
+		Icon=/usr/share/pixmaps/ar1config.png
+		Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/${USERNAME}/ -e ${configscript}
+		Type=Application
+		Encoding=UTF-8
+		Terminal=false
+		Categories=None;
+EOT
+    chmod 755 ${configshortcutfile}
+
+    cat <<-EOT > ${uninstallshortcutfile}
+		[Desktop Entry]
+		Name=Argon One Uninstall
+		Comment=Argon One Uninstall
+		Icon=/usr/share/pixmaps/ar1uninstall.png
+		Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/${USERNAME}/ -e ${removescript}
+		Type=Application
+		Encoding=UTF-8
+		Terminal=false
+		Categories=None;
+EOT
+    chmod 755 ${uninstallshortcutfile}
+  fi
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
@@ -485,6 +530,8 @@ function main() {
   argon::create_fan_service ${daemonfanservice} ${powerbuttonscript}
   argon::create_uninstall_script ${removescript} ${powerbuttonscript} ${shutdownscript}
   argon::create_config_script ${configscript} ${daemonconfigfile}
+  argon::start_deamon
+  argon::create_desktop_shortcut ${configscript} ${removescript}
 }
 main;
 exit
@@ -494,42 +541,6 @@ daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-systemctl daemon-reload
-systemctl enable $DAEMONNAME.service
-
-systemctl start $DAEMONNAME.service
-
-if [[ -d "/home/$USERNAME/Desktop" ]]; then
-  wget http://download.argon40.com/ar1config.png -O /usr/share/pixmaps/ar1config.png
-  wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
-
-  # Create Shortcuts
-  shortcutfile="/home/$USERNAME/Desktop/argonone-config.desktop"
-  echo "[Desktop Entry]" > $shortcutfile
-  echo "Name=Argon One Configuration" >> $shortcutfile
-  echo "Comment=Argon One Configuration" >> $shortcutfile
-  echo "Icon=/usr/share/pixmaps/ar1config.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/$USERNAME/ -e '$configscript >> $shortcutfile
-  echo "Type=Application" >> $shortcutfile
-  echo "Encoding=UTF-8" >> $shortcutfile
-  echo "Terminal=false" >> $shortcutfile
-  echo "Categories=None;" >> $shortcutfile
-  chmod 755 $shortcutfile
-
-  shortcutfile="/home/$USERNAME/Desktop/argonone-uninstall.desktop"
-  echo "[Desktop Entry]" > $shortcutfile
-  echo "Name=Argon One Uninstall" >> $shortcutfile
-  echo "Comment=Argon One Uninstall" >> $shortcutfile
-  echo "Icon=/usr/share/pixmaps/ar1uninstall.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/$USERNAME/ -e '$removescript >> $shortcutfile
-  echo "Type=Application" >> $shortcutfile
-  echo "Encoding=UTF-8" >> $shortcutfile
-  echo "Terminal=false" >> $shortcutfile
-  echo "Categories=None;" >> $shortcutfile
-  chmod 755 $shortcutfile
-fi
-
 
 echo <<EOT
 ****************************
