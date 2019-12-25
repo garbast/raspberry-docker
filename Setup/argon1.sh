@@ -284,12 +284,198 @@ EOT
   chmod 755 ${removescript}
 }
 
+# Config Script
+function argon::create_config_script() {
+  local configscript=$1
+  local daemonconfigfile=$2
+  argon::create_file ${configscript}
+
+  cat <<-EOT > ${configscript}
+	#!/bin/bash
+	daemonconfigfile=/etc/${DAEMONNAME}.conf
+	echo "--------------------------------------"
+	echo "Argon One Fan Speed Configuration Tool"
+	echo "--------------------------------------"
+	echo "WARNING: This will remove existing configuration."
+	echo -n "Press Y to continue:"
+	read -n 1 confirm
+	echo
+	if [ "\$confirm" = "y" ]
+	then
+	    confirm="Y"
+	fi
+
+	if [ "\$confirm" != "Y" ]
+	then
+	    echo "Cancelled"
+	    exit
+	fi
+	echo "Thank you."
+
+	get_number () {
+	    read curnumber
+	    re="^[0-9]+$"
+	    if [ -z "\$curnumber" ]
+	    then
+	        echo "-2"
+	        return
+	    elif [[ \$curnumber =~ ^[+-]?[0-9]+$ ]]
+	    then
+	        if [ \$curnumber -lt 0 ]
+	        then
+	            echo "-1"
+	            return
+	        elif [ \$curnumber -gt 100 ]
+	        then
+	            echo "-1"
+	            return
+	        fi
+	        echo \$curnumber
+	        return
+	    fi
+	    echo "-1"
+	    return
+	}
+
+
+	loopflag=1
+	while [ \$loopflag -eq 1 ]
+	do
+	    echo
+	    echo "Select fan mode:"
+	    echo "  1. Always on"
+	    echo "  2. Adjust to temperatures (55C, 60C, and 65C)"
+	    echo "  3. Customize behavior"
+	    echo "  4. Cancel"
+	    echo "NOTE: You can also edit ${daemonconfigfile} directly"
+	    echo -n "Enter Number (1-4):"
+	    newmode=\$( get_number )
+	    if [[ \$newmode -ge 1 && \$newmode -le 4 ]]
+	    then
+	        loopflag=0
+	    fi
+	done
+
+	echo
+	if [ \$newmode -eq 4 ]
+	then
+	    echo "Cancelled"
+	    exit
+	elif [ \$newmode -eq 1 ]
+	then
+	    echo "#" > ${daemonconfigfile}
+	    echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
+	    echo "#" >> ${daemonconfigfile}
+	    echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
+	    echo 1"="100 >> ${daemonconfigfile}
+	    sudo systemctl restart ${DAEMONNAME}.service
+	    echo "Fan always on."
+	    exit
+	elif [ \$newmode -eq 2 ]
+	then
+	    echo "Please provide fan speeds for the following temperatures:"
+	    echo "#" > ${daemonconfigfile}
+	    echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
+	    echo "#" >> ${daemonconfigfile}
+	    echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
+	    curtemp=55
+	    while [ \$curtemp -lt 70 ]
+	    do
+	        errorfanflag=1
+	        while [ \$errorfanflag -eq 1 ]
+	        do
+	            echo -n ""\$curtemp"C (0-100 only):"
+	            curfan=\$( get_number )
+	            if [ \$curfan -ge 0 ]
+	            then
+	                errorfanflag=0
+	            fi
+	        done
+	        echo \$curtemp"="\$curfan >> ${daemonconfigfile}
+	        curtemp=\$((curtemp+5))
+	    done
+
+	    sudo systemctl restart ${DAEMONNAME}.service
+	    echo "Configuration updated."
+	    exit
+	fi
+
+	echo "Please provide fan speeds and temperature pairs"
+	echo
+
+	loopflag=1
+	paircounter=0
+	while [ \$loopflag -eq 1 ]
+	do
+	    errortempflag=1
+	    errorfanflag=1
+	    while [ \$errortempflag -eq 1 ]
+	    do
+	        echo -n "Provide minimum temperature (in Celsius) then [ENTER]:"
+	        curtemp=\$( get_number )
+	        if [ \$curtemp -ge 0 ]
+	        then
+	            errortempflag=0
+	        elif [ \$curtemp -eq -2 ]
+	        then
+	            errortempflag=0
+	            errorfanflag=0
+	            loopflag=0
+	        fi
+	    done
+	    while [ \$errorfanflag -eq 1 ]
+	    do
+	        echo -n "Provide fan speed for "\$curtemp"C (0-100) then [ENTER]:"
+	        curfan=\$( get_number )
+	        if [ \$curfan -ge 0 ]
+	        then
+	            errorfanflag=0
+	        elif [ \$curfan -eq -2 ]
+	        then
+	            errortempflag=0
+	            errorfanflag=0
+	            loopflag=0
+	        fi
+	    done
+	    if [ \$loopflag -eq 1 ]
+	    then
+	        if [ \$paircounter -eq 0 ]
+	        then
+	            echo "#" > ${daemonconfigfile}
+	            echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
+	            echo "#" >> ${daemonconfigfile}
+	            echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
+	        fi
+	        echo \$curtemp"="\$curfan >> ${daemonconfigfile}
+
+	        paircounter=\$((paircounter+1))
+
+	        echo "* Fan speed will be set to "\$curfan" once temperature reaches "\$curtemp" C"
+	        echo
+	    fi
+	done
+
+	echo
+	if [ \$paircounter -gt 0 ]
+	then
+	    echo "Thank you!  We saved "\$paircounter" pairs."
+	    sudo systemctl restart ${DAEMONNAME}.service
+	    echo "Changes should take effect now."
+	else
+	    echo "Cancelled, no data saved."
+	fi
+EOT
+
+  chmod 755 ${configscript}
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
   local powerbuttonscript="/usr/bin/${DAEMONNAME}.py"
   local daemonfanservice="/lib/systemd/system/${DAEMONNAME}.service"
   local removescript="/usr/bin/argonone-uninstall"
+  local configscript="/usr/bin/argonone-config"
 
   argon::install_required_packages
   argon::change_raspi_config
@@ -298,6 +484,7 @@ function main() {
   argon::create_powerbutton_script ${powerbuttonscript} ${daemonconfigfile}
   argon::create_fan_service ${daemonfanservice} ${powerbuttonscript}
   argon::create_uninstall_script ${removescript} ${powerbuttonscript} ${shutdownscript}
+  argon::create_config_script ${configscript} ${daemonconfigfile}
 }
 main;
 exit
@@ -307,186 +494,6 @@ daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-argon::create_file $configscript
-
-# Config Script
-echo '#!/bin/bash' >> $configscript
-echo 'daemonconfigfile=/etc/'$DAEMONNAME'.conf' >> $configscript
-echo 'echo "--------------------------------------"' >> $configscript
-echo 'echo "Argon One Fan Speed Configuration Tool"' >> $configscript
-echo 'echo "--------------------------------------"' >> $configscript
-echo 'echo "WARNING: This will remove existing configuration."' >> $configscript
-echo 'echo -n "Press Y to continue:"' >> $configscript
-echo 'read -n 1 confirm' >> $configscript
-echo 'echo' >> $configscript
-echo 'if [ "$confirm" = "y" ]' >> $configscript
-echo 'then' >> $configscript
-echo '	confirm="Y"' >> $configscript
-echo 'fi' >> $configscript
-echo '' >> $configscript
-echo 'if [ "$confirm" != "Y" ]' >> $configscript
-echo 'then' >> $configscript
-echo '	echo "Cancelled"' >> $configscript
-echo '	exit' >> $configscript
-echo 'fi' >> $configscript
-echo 'echo "Thank you."' >> $configscript
-
-echo 'get_number () {' >> $configscript
-echo '	read curnumber' >> $configscript
-echo '	re="^[0-9]+$"' >> $configscript
-echo '	if [ -z "$curnumber" ]' >> $configscript
-echo '	then' >> $configscript
-echo '		echo "-2"' >> $configscript
-echo '		return' >> $configscript
-echo '	elif [[ $curnumber =~ ^[+-]?[0-9]+$ ]]' >> $configscript
-echo '	then' >> $configscript
-echo '		if [ $curnumber -lt 0 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			echo "-1"' >> $configscript
-echo '			return' >> $configscript
-echo '		elif [ $curnumber -gt 100 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			echo "-1"' >> $configscript
-echo '			return' >> $configscript
-echo '		fi	' >> $configscript
-echo '		echo $curnumber' >> $configscript
-echo '		return' >> $configscript
-echo '	fi' >> $configscript
-echo '	echo "-1"' >> $configscript
-echo '	return' >> $configscript
-echo '}' >> $configscript
-echo '' >> $configscript
-
-echo 'loopflag=1' >> $configscript
-echo 'while [ $loopflag -eq 1 ]' >> $configscript
-echo 'do' >> $configscript
-echo '	echo' >> $configscript
-echo '	echo "Select fan mode:"' >> $configscript
-echo '	echo "  1. Always on"' >> $configscript
-echo '	echo "  2. Adjust to temperatures (55C, 60C, and 65C)"' >> $configscript
-echo '	echo "  3. Customize behavior"' >> $configscript
-echo '	echo "  4. Cancel"' >> $configscript
-echo '	echo "NOTE: You can also edit $daemonconfigfile directly"' >> $configscript
-echo '	echo -n "Enter Number (1-4):"' >> $configscript
-echo '	newmode=$( get_number )' >> $configscript
-echo '	if [[ $newmode -ge 1 && $newmode -le 4 ]]' >> $configscript
-echo '	then' >> $configscript
-echo '		loopflag=0' >> $configscript
-echo '	fi' >> $configscript
-echo 'done' >> $configscript
-
-echo 'echo' >> $configscript
-echo 'if [ $newmode -eq 4 ]' >> $configscript
-echo 'then' >> $configscript
-echo '	echo "Cancelled"' >> $configscript
-echo '	exit' >> $configscript
-echo 'elif [ $newmode -eq 1 ]' >> $configscript
-echo 'then' >> $configscript
-echo '	echo "#" > $daemonconfigfile' >> $configscript
-echo '	echo "# Argon One Fan Speed Configuration" >> $daemonconfigfile' >> $configscript
-echo '	echo "#" >> $daemonconfigfile' >> $configscript
-echo '	echo "# Min Temp=Fan Speed" >> $daemonconfigfile' >> $configscript
-echo '	echo 1"="100 >> $daemonconfigfile' >> $configscript
-echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
-echo '	echo "Fan always on."' >> $configscript
-echo '	exit' >> $configscript
-echo 'elif [ $newmode -eq 2 ]' >> $configscript
-echo 'then' >> $configscript
-echo '	echo "Please provide fan speeds for the following temperatures:"' >> $configscript
-echo '	echo "#" > $daemonconfigfile' >> $configscript
-echo '	echo "# Argon One Fan Speed Configuration" >> $daemonconfigfile' >> $configscript
-echo '	echo "#" >> $daemonconfigfile' >> $configscript
-echo '	echo "# Min Temp=Fan Speed" >> $daemonconfigfile' >> $configscript
-echo '	curtemp=55' >> $configscript
-echo '	while [ $curtemp -lt 70 ]' >> $configscript
-echo '	do' >> $configscript
-echo '		errorfanflag=1' >> $configscript
-echo '		while [ $errorfanflag -eq 1 ]' >> $configscript
-echo '		do' >> $configscript
-echo '			echo -n ""$curtemp"C (0-100 only):"' >> $configscript
-echo '			curfan=$( get_number )' >> $configscript
-echo '			if [ $curfan -ge 0 ]' >> $configscript
-echo '			then' >> $configscript
-echo '				errorfanflag=0' >> $configscript
-echo '			fi' >> $configscript
-echo '		done' >> $configscript
-echo '		echo $curtemp"="$curfan >> $daemonconfigfile' >> $configscript
-echo '		curtemp=$((curtemp+5))' >> $configscript
-echo '	done' >> $configscript
-
-echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
-echo '	echo "Configuration updated."' >> $configscript
-echo '	exit' >> $configscript
-echo 'fi' >> $configscript
-
-echo 'echo "Please provide fan speeds and temperature pairs"' >> $configscript
-echo 'echo' >> $configscript
-
-echo 'loopflag=1' >> $configscript
-echo 'paircounter=0' >> $configscript
-echo 'while [ $loopflag -eq 1 ]' >> $configscript
-echo 'do' >> $configscript
-echo '	errortempflag=1' >> $configscript
-echo '	errorfanflag=1' >> $configscript
-echo '	while [ $errortempflag -eq 1 ]' >> $configscript
-echo '	do' >> $configscript
-echo '		echo -n "Provide minimum temperature (in Celsius) then [ENTER]:"' >> $configscript
-echo '		curtemp=$( get_number )' >> $configscript
-echo '		if [ $curtemp -ge 0 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			errortempflag=0' >> $configscript
-echo '		elif [ $curtemp -eq -2 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			errortempflag=0' >> $configscript
-echo '			errorfanflag=0' >> $configscript
-echo '			loopflag=0' >> $configscript
-echo '		fi' >> $configscript
-echo '	done' >> $configscript
-echo '	while [ $errorfanflag -eq 1 ]' >> $configscript
-echo '	do' >> $configscript
-echo '		echo -n "Provide fan speed for "$curtemp"C (0-100) then [ENTER]:"' >> $configscript
-echo '		curfan=$( get_number )' >> $configscript
-echo '		if [ $curfan -ge 0 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			errorfanflag=0' >> $configscript
-echo '		elif [ $curfan -eq -2 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			errortempflag=0' >> $configscript
-echo '			errorfanflag=0' >> $configscript
-echo '			loopflag=0' >> $configscript
-echo '		fi' >> $configscript
-echo '	done' >> $configscript
-echo '	if [ $loopflag -eq 1 ]' >> $configscript
-echo '	then' >> $configscript
-echo '		if [ $paircounter -eq 0 ]' >> $configscript
-echo '		then' >> $configscript
-echo '			echo "#" > $daemonconfigfile' >> $configscript
-echo '			echo "# Argon One Fan Speed Configuration" >> $daemonconfigfile' >> $configscript
-echo '			echo "#" >> $daemonconfigfile' >> $configscript
-echo '			echo "# Min Temp=Fan Speed" >> $daemonconfigfile' >> $configscript
-echo '		fi' >> $configscript
-echo '		echo $curtemp"="$curfan >> $daemonconfigfile' >> $configscript
-echo '		' >> $configscript
-echo '		paircounter=$((paircounter+1))' >> $configscript
-echo '		' >> $configscript
-echo '		echo "* Fan speed will be set to "$curfan" once temperature reaches "$curtemp" C"' >> $configscript
-echo '		echo' >> $configscript
-echo '	fi' >> $configscript
-echo 'done' >> $configscript
-echo '' >> $configscript
-echo 'echo' >> $configscript
-echo 'if [ $paircounter -gt 0 ]' >> $configscript
-echo 'then' >> $configscript
-echo '	echo "Thank you!  We saved "$paircounter" pairs."' >> $configscript
-echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
-echo '	echo "Changes should take effect now."' >> $configscript
-echo 'else' >> $configscript
-echo '	echo "Cancelled, no data saved."' >> $configscript
-echo 'fi' >> $configscript
-
-chmod 755 $configscript
-
 
 systemctl daemon-reload
 systemctl enable $DAEMONNAME.service
