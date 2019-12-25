@@ -28,6 +28,7 @@ function argon::install_required_packages() {
   # package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
   local package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
   pip install RPi.GPIO
+  pip install smbus
   for package_name in ${package_list[@]}; do
     #apt-get install -y ${package_name}
     if [[ ! $(argon::check_pkg ${package_name}) ]]; then
@@ -39,6 +40,11 @@ EOT
       exit
     fi
   done
+}
+
+function argon::change_raspi_config() {
+  raspi-config nonint do_i2c 0
+  raspi-config nonint do_serial 0
 }
 
 function argon::create_config_file() {
@@ -75,158 +81,163 @@ EOT
   fi
 }
 
+# Generate script that runs every shutdown event
+function argon::create_shutdown_script() {
+  shutdownscript=$1
+  argon::create_file ${shutdownscript}
+
+  cat <<-EOT > ${shutdownscript}
+		#!/usr/bin/python
+		import sys
+		import smbus
+		import RPi.GPIO as GPIO
+
+		rev = GPIO.RPI_REVISION
+		if rev == 2 or rev == 3:
+		    bus = smbus.SMBus(1)
+		else:
+		    bus = smbus.SMBus(0)
+
+		if len(sys.argv)>1:
+		    bus.write_byte(0x1a,0)
+		    if sys.argv[1] == "poweroff" or sys.argv[1] == "halt":
+		        try:
+		            bus.write_byte(0x1a,0xFF)
+		        except:
+		            rev=0"
+EOT
+  chmod 755 ${shutdownscript}
+}
+
+# Generate script to monitor shutdown button
+function argon::create_powerbutton_script() {
+  local powerbuttonscript=$1
+  local daemonconfigfile=$2
+  argon::create_file ${powerbuttonscript}
+
+  cat <<-EOT > ${powerbuttonscript}
+	#!/usr/bin/python
+	import smbus
+	import RPi.GPIO as GPIO
+	import os
+	import time
+	from threading import Thread
+	rev = GPIO.RPI_REVISION
+	if rev == 2 or rev == 3:
+	    bus = smbus.SMBus(1)
+	else:
+	    bus = smbus.SMBus(0)
+	GPIO.setwarnings(False)
+	GPIO.setmode(GPIO.BCM)
+	shutdown_pin=4
+	GPIO.setup(shutdown_pin, GPIO.IN,  pull_up_down=GPIO.PUD_DOWN)
+	def shutdown_check():
+	    while True:
+	        pulsetime = 1
+	        GPIO.wait_for_edge(shutdown_pin, GPIO.RISING)
+	        time.sleep(0.01)
+	        while GPIO.input(shutdown_pin) == GPIO.HIGH:
+	            time.sleep(0.01)
+	            pulsetime += 1
+	        if pulsetime >=2 and pulsetime <=3:
+	            os.system("reboot")
+	        elif pulsetime >=4 and pulsetime <=5:
+	            os.system("shutdown now -h")
+	def get_fanspeed(tempval, configlist):
+	    for curconfig in configlist:
+	        curpair = curconfig.split("=")
+	        tempcfg = float(curpair[0])
+	        fancfg = int(float(curpair[1]))
+	        if tempval >= tempcfg:
+	            return fancfg
+	    return 0
+	def load_config(fname):
+	    newconfig = []
+	    try:
+	        with open(fname, "r") as fp:
+	            for curline in fp:
+	                if not curline:
+	                    continue
+	                tmpline = curline.strip()
+	                if not tmpline:
+	                    continue
+	                if tmpline[0] == "#":
+	                    continue
+	                tmppair = tmpline.split("=")
+	                if len(tmppair) != 2:
+	                    continue
+	                tempval = 0
+	                fanval = 0
+	                try:
+	                    tempval = float(tmppair[0])
+	                    if tempval < 0 or tempval > 100:
+	                        continue
+	                except:
+	                    continue
+	                try:
+	                    fanval = int(float(tmppair[1]))
+	                    if fanval < 0 or fanval > 100:
+	                        continue
+	                except:
+	                    continue
+	                newconfig.append( "{:5.1f}={}".format(tempval,fanval))
+	        if len(newconfig) > 0:
+	            newconfig.sort(reverse=True)
+	    except:
+	        return []
+	    return newconfig
+	def temp_check():
+	    fanconfig = ["65=100", "60=55", "55=10"]
+	    tmpconfig = load_config("${daemonconfigfile}")
+	    if len(tmpconfig) > 0:
+	        fanconfig = tmpconfig
+	    address=0x1a
+	    prevblock=0
+	    while True:
+	        temp = os.popen("vcgencmd measure_temp").readline()
+	        temp = temp.replace("temp=","")
+	        val = float(temp.replace("'C",""))
+	        block = get_fanspeed(val, fanconfig)
+	        if block < prevblock:
+	            time.sleep(30)
+	        prevblock = block
+	        try:
+	            bus.write_byte(address,block)
+	        except IOError:
+	            temp=""
+	        time.sleep(30)
+	try:
+	    t1 = Thread(target = shutdown_check)
+	    t2 = Thread(target = temp_check)
+	    t1.start()
+	    t2.start()
+	except:
+	    t1.stop()
+	    t2.stop()
+	    GPIO.cleanup()
+EOT
+  chmod 755 ${powerbuttonscript}
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
+  local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
+  local powerbuttonscript="/usr/bin/${DAEMONNAME}.py"
 
   argon::install_required_packages
+  argon::change_raspi_config
   argon::create_config_file ${daemonconfigfile}
+  argon::create_shutdown_script ${shutdownscript}
+  argon::create_powerbutton_script ${powerbuttonscript} ${daemonconfigfile}
 }
 main;
 exit
 
 powerbuttonscript=/usr/bin/${DAEMONNAME}.py
-shutdownscript="/lib/systemd/system-shutdown/$DAEMONNAME-poweroff.py"
 daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-raspi-config nonint do_i2c 0
-raspi-config nonint do_serial 0
-
-# Generate script that runs every shutdown event
-argon::create_file ${shutdownscript}
-
-echo "#!/usr/bin/python" >> $shutdownscript
-echo 'import sys' >> $shutdownscript
-echo 'import smbus' >> $shutdownscript
-echo 'import RPi.GPIO as GPIO' >> $shutdownscript
-echo 'rev = GPIO.RPI_REVISION' >> $shutdownscript
-echo 'if rev == 2 or rev == 3:' >> $shutdownscript
-echo '	bus = smbus.SMBus(1)' >> $shutdownscript
-echo 'else:' >> $shutdownscript
-echo '	bus = smbus.SMBus(0)' >> $shutdownscript
-
-echo 'if len(sys.argv)>1:' >> $shutdownscript
-echo "	bus.write_byte(0x1a,0)"  >> $shutdownscript
-echo '	if sys.argv[1] == "poweroff" or sys.argv[1] == "halt":'  >> $shutdownscript
-echo "		try:"  >> $shutdownscript
-echo "			bus.write_byte(0x1a,0xFF)"  >> $shutdownscript
-echo "		except:"  >> $shutdownscript
-echo "			rev=0"  >> $shutdownscript
-chmod 755 $shutdownscript
-
-# Generate script to monitor shutdown button
-
-argon::create_file $powerbuttonscript
-
-echo "#!/usr/bin/python" >> $powerbuttonscript
-echo 'import smbus' >> $powerbuttonscript
-echo 'import RPi.GPIO as GPIO' >> $powerbuttonscript
-echo 'import os' >> $powerbuttonscript
-echo 'import time' >> $powerbuttonscript
-echo 'from threading import Thread' >> $powerbuttonscript
-echo 'rev = GPIO.RPI_REVISION' >> $powerbuttonscript
-echo 'if rev == 2 or rev == 3:' >> $powerbuttonscript
-echo '	bus = smbus.SMBus(1)' >> $powerbuttonscript
-echo 'else:' >> $powerbuttonscript
-echo '	bus = smbus.SMBus(0)' >> $powerbuttonscript
-
-echo 'GPIO.setwarnings(False)' >> $powerbuttonscript
-echo 'GPIO.setmode(GPIO.BCM)' >> $powerbuttonscript
-echo 'shutdown_pin=4' >> $powerbuttonscript
-echo 'GPIO.setup(shutdown_pin, GPIO.IN,  pull_up_down=GPIO.PUD_DOWN)' >> $powerbuttonscript
-
-echo 'def shutdown_check():' >> $powerbuttonscript
-echo '	while True:' >> $powerbuttonscript
-echo '		pulsetime = 1' >> $powerbuttonscript
-echo '		GPIO.wait_for_edge(shutdown_pin, GPIO.RISING)' >> $powerbuttonscript
-echo '		time.sleep(0.01)' >> $powerbuttonscript
-echo '		while GPIO.input(shutdown_pin) == GPIO.HIGH:' >> $powerbuttonscript
-echo '			time.sleep(0.01)' >> $powerbuttonscript
-echo '			pulsetime += 1' >> $powerbuttonscript
-echo '		if pulsetime >=2 and pulsetime <=3:' >> $powerbuttonscript
-echo '			os.system("reboot")' >> $powerbuttonscript
-echo '		elif pulsetime >=4 and pulsetime <=5:' >> $powerbuttonscript
-echo '			os.system("shutdown now -h")' >> $powerbuttonscript
-
-echo 'def get_fanspeed(tempval, configlist):' >> $powerbuttonscript
-echo '	for curconfig in configlist:' >> $powerbuttonscript
-echo '		curpair = curconfig.split("=")' >> $powerbuttonscript
-echo '		tempcfg = float(curpair[0])' >> $powerbuttonscript
-echo '		fancfg = int(float(curpair[1]))' >> $powerbuttonscript
-echo '		if tempval >= tempcfg:' >> $powerbuttonscript
-echo '			return fancfg' >> $powerbuttonscript
-echo '	return 0' >> $powerbuttonscript
-
-echo 'def load_config(fname):' >> $powerbuttonscript
-echo '	newconfig = []' >> $powerbuttonscript
-echo '	try:' >> $powerbuttonscript
-echo '		with open(fname, "r") as fp:' >> $powerbuttonscript
-echo '			for curline in fp:' >> $powerbuttonscript
-echo '				if not curline:' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				tmpline = curline.strip()' >> $powerbuttonscript
-echo '				if not tmpline:' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				if tmpline[0] == "#":' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				tmppair = tmpline.split("=")' >> $powerbuttonscript
-echo '				if len(tmppair) != 2:' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				tempval = 0' >> $powerbuttonscript
-echo '				fanval = 0' >> $powerbuttonscript
-echo '				try:' >> $powerbuttonscript
-echo '					tempval = float(tmppair[0])' >> $powerbuttonscript
-echo '					if tempval < 0 or tempval > 100:' >> $powerbuttonscript
-echo '						continue' >> $powerbuttonscript
-echo '				except:' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				try:' >> $powerbuttonscript
-echo '					fanval = int(float(tmppair[1]))' >> $powerbuttonscript
-echo '					if fanval < 0 or fanval > 100:' >> $powerbuttonscript
-echo '						continue' >> $powerbuttonscript
-echo '				except:' >> $powerbuttonscript
-echo '					continue' >> $powerbuttonscript
-echo '				newconfig.append( "{:5.1f}={}".format(tempval,fanval))' >> $powerbuttonscript
-echo '		if len(newconfig) > 0:' >> $powerbuttonscript
-echo '			newconfig.sort(reverse=True)' >> $powerbuttonscript
-echo '	except:' >> $powerbuttonscript
-echo '		return []' >> $powerbuttonscript
-echo '	return newconfig' >> $powerbuttonscript
-
-echo 'def temp_check():' >> $powerbuttonscript
-echo '	fanconfig = ["65=100", "60=55", "55=10"]' >> $powerbuttonscript
-echo '	tmpconfig = load_config("'$daemonconfigfile'")' >> $powerbuttonscript
-echo '	if len(tmpconfig) > 0:' >> $powerbuttonscript
-echo '		fanconfig = tmpconfig' >> $powerbuttonscript
-echo '	address=0x1a' >> $powerbuttonscript
-echo '	prevblock=0' >> $powerbuttonscript
-echo '	while True:' >> $powerbuttonscript
-echo '		temp = os.popen("vcgencmd measure_temp").readline()' >> $powerbuttonscript
-echo '		temp = temp.replace("temp=","")' >> $powerbuttonscript
-echo '		val = float(temp.replace("'"'"'C",""))' >> $powerbuttonscript
-echo '		block = get_fanspeed(val, fanconfig)' >> $powerbuttonscript
-echo '		if block < prevblock:' >> $powerbuttonscript
-echo '			time.sleep(30)' >> $powerbuttonscript
-echo '		prevblock = block' >> $powerbuttonscript
-echo '		try:' >> $powerbuttonscript
-echo '			bus.write_byte(address,block)' >> $powerbuttonscript
-echo '		except IOError:' >> $powerbuttonscript
-echo '			temp=""' >> $powerbuttonscript
-echo '		time.sleep(30)' >> $powerbuttonscript
-
-echo 'try:' >> $powerbuttonscript
-echo '	t1 = Thread(target = shutdown_check)' >> $powerbuttonscript
-echo '	t2 = Thread(target = temp_check)' >> $powerbuttonscript
-echo '	t1.start()' >> $powerbuttonscript
-echo '	t2.start()' >> $powerbuttonscript
-echo 'except:' >> $powerbuttonscript
-echo '	t1.stop()' >> $powerbuttonscript
-echo '	t2.stop()' >> $powerbuttonscript
-echo '	GPIO.cleanup()' >> $powerbuttonscript
-
-chmod 755 $powerbuttonscript
 
 argon::create_file $daemonfanservice
 
