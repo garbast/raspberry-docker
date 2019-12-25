@@ -219,16 +219,39 @@ EOT
   chmod 755 ${powerbuttonscript}
 }
 
+# Fan Daemon
+function argon::create_fan_service() {
+  daemonfanservice=$1
+  powerbuttonscript=$2
+  argon::create_file ${daemonfanservice}
+
+  cat <<-EOT > ${daemonfanservice}
+[Unit]
+Description=Argon One Fan and Button Service
+After=multi-user.target
+[Service]
+Type=simple
+Restart=always
+RemainAfterExit=true
+ExecStart=/usr/bin/python3 ${powerbuttonscript}
+[Install]
+WantedBy=multi-user.target
+EOT
+  chmod 644 ${daemonfanservice}
+}
+
 function main() {
   local daemonconfigfile="/etc/${DAEMONNAME}.conf"
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
   local powerbuttonscript="/usr/bin/${DAEMONNAME}.py"
+  local daemonfanservice="/lib/systemd/system/${DAEMONNAME}.service"
 
   argon::install_required_packages
   argon::change_raspi_config
   argon::create_config_file ${daemonconfigfile}
   argon::create_shutdown_script ${shutdownscript}
   argon::create_powerbutton_script ${powerbuttonscript} ${daemonconfigfile}
+  argon::create_fan_service ${daemonfanservice} ${powerbuttonscript}
 }
 main;
 exit
@@ -238,22 +261,6 @@ daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
-
-argon::create_file $daemonfanservice
-
-# Fan Daemon
-echo "[Unit]" >> $daemonfanservice
-echo "Description=Argon One Fan and Button Service" >> $daemonfanservice
-echo "After=multi-user.target" >> $daemonfanservice
-echo '[Service]' >> $daemonfanservice
-echo 'Type=simple' >> $daemonfanservice
-echo "Restart=always" >> $daemonfanservice
-echo "RemainAfterExit=true" >> $daemonfanservice
-echo "ExecStart=/usr/bin/python3 $powerbuttonscript" >> $daemonfanservice
-echo '[Install]' >> $daemonfanservice
-echo "WantedBy=multi-user.target" >> $daemonfanservice
-
-chmod 644 $daemonfanservice
 
 argon::create_file $removescript
 
