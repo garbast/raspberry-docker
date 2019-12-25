@@ -5,8 +5,11 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+readonly USERNAME="pi"
+readonly DAEMONNAME="argononed"
+
 function argon_create_file() {
-  file=$1
+  local file=$1
   if [[ -f ${file} ]]; then
     rm ${file}
   fi
@@ -15,44 +18,46 @@ function argon_create_file() {
 }
 
 function argon_check_pkg() {
-  package_name=$1
+  local package_name=$1
   result=$(dpkg-query -W -f='${Status}\n' "${package_name}" 2> /dev/null | grep "installed")
   [[ "${result}" != "" ]] && echo "ok"
   false
 }
 
-# package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
-package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
-for package_name in ${package_list[@]}; do
-  apt-get install -y ${package_name}
-  if [[ ! $(argon_check_pkg ${package_name}) ]]; then
-    cat <<-EOT
-		********************************************************************
-		Please also connect device to the internet and restart installation.
-		********************************************************************
+function argon_install_required_packages() {
+  # package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
+  local package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
+  for package_name in ${package_list[@]}; do
+    #apt-get install -y ${package_name}
+    if [[ ! $(argon_check_pkg ${package_name}) ]]; then
+      cat <<-EOT
+			********************************************************************
+			Please also connect device to the internet and restart installation.
+			********************************************************************
 EOT
-    exit
-  fi
-done
-pip install RPi.GPIO
+      exit
+    fi
+  done
+  pip install RPi.GPIO
+}
 
-user="pi"
-daemonname="argononed"
-powerbuttonscript=/usr/bin/${daemonname}.py
-shutdownscript="/lib/systemd/system-shutdown/$daemonname-poweroff.py"
-daemonconfigfile=/etc/${daemonname}.conf
+argon_install_required_packages;
+exit
+
+powerbuttonscript=/usr/bin/${DAEMONNAME}.py
+shutdownscript="/lib/systemd/system-shutdown/$DAEMONNAME-poweroff.py"
+daemonconfigfile=/etc/${DAEMONNAME}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
-
-daemonfanservice=/lib/systemd/system/${daemonname}.service
+daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
 
 raspi-config nonint do_i2c 0
 raspi-config nonint do_serial 0
 
 if [[ ! -f ${daemonconfigfile} ]]; then
-  # Generate config file for fan speed
-  touch ${daemonconfigfile}
-  chmod 666 ${daemonconfigfile}
+  # config file for fan speed
+  argon_create_file ${daemonconfigfile}
+
   cat <<-EOT > ${daemonconfigfile}
 	#
 	# Argon One Fan Configuration
@@ -71,7 +76,7 @@ if [[ ! -f ${daemonconfigfile} ]]; then
 	# NOTE: Lines beginning with # are ignored
 	#
 	# Type the following at the command line for changes to take effect:
-	# sudo systemctl restart ${daemonname}.service
+	# sudo systemctl restart ${DAEMONNAME}.service
 	#
 	# Start below:
 	55=10
@@ -250,13 +255,13 @@ echo 'then' >> $removescript
 echo '	echo "Cancelled"' >> $removescript
 echo '	exit' >> $removescript
 echo 'fi' >> $removescript
-echo 'if [ -d "/home/$user/Desktop" ]; then' >> $removescript
-echo '	sudo rm "/home/$user/Desktop/argonone-config.desktop"' >> $removescript
-echo '	sudo rm "/home/$user/Desktop/argonone-uninstall.desktop"' >> $removescript
+echo 'if [ -d "/home/$USERNAME/Desktop" ]; then' >> $removescript
+echo '	sudo rm "/home/$USERNAME/Desktop/argonone-config.desktop"' >> $removescript
+echo '	sudo rm "/home/$USERNAME/Desktop/argonone-uninstall.desktop"' >> $removescript
 echo 'fi' >> $removescript
 echo 'if [ -f '$powerbuttonscript' ]; then' >> $removescript
-echo '	sudo systemctl stop '$daemonname'.service' >> $removescript
-echo '	sudo systemctl disable '$daemonname'.service' >> $removescript
+echo '	sudo systemctl stop '$DAEMONNAME'.service' >> $removescript
+echo '	sudo systemctl disable '$DAEMONNAME'.service' >> $removescript
 echo '	sudo /usr/bin/python3 '$shutdownscript' uninstall' >> $removescript
 echo '	sudo rm '$powerbuttonscript >> $removescript
 echo '	sudo rm '$shutdownscript >> $removescript
@@ -271,7 +276,7 @@ argon_create_file $configscript
 
 # Config Script
 echo '#!/bin/bash' >> $configscript
-echo 'daemonconfigfile=/etc/'$daemonname'.conf' >> $configscript
+echo 'daemonconfigfile=/etc/'$DAEMONNAME'.conf' >> $configscript
 echo 'echo "--------------------------------------"' >> $configscript
 echo 'echo "Argon One Fan Speed Configuration Tool"' >> $configscript
 echo 'echo "--------------------------------------"' >> $configscript
@@ -347,7 +352,7 @@ echo '	echo "# Argon One Fan Speed Configuration" >> $daemonconfigfile' >> $conf
 echo '	echo "#" >> $daemonconfigfile' >> $configscript
 echo '	echo "# Min Temp=Fan Speed" >> $daemonconfigfile' >> $configscript
 echo '	echo 1"="100 >> $daemonconfigfile' >> $configscript
-echo '	sudo systemctl restart '$daemonname'.service' >> $configscript
+echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
 echo '	echo "Fan always on."' >> $configscript
 echo '	exit' >> $configscript
 echo 'elif [ $newmode -eq 2 ]' >> $configscript
@@ -374,7 +379,7 @@ echo '		echo $curtemp"="$curfan >> $daemonconfigfile' >> $configscript
 echo '		curtemp=$((curtemp+5))' >> $configscript
 echo '	done' >> $configscript
 
-echo '	sudo systemctl restart '$daemonname'.service' >> $configscript
+echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
 echo '	echo "Configuration updated."' >> $configscript
 echo '	exit' >> $configscript
 echo 'fi' >> $configscript
@@ -438,7 +443,7 @@ echo 'echo' >> $configscript
 echo 'if [ $paircounter -gt 0 ]' >> $configscript
 echo 'then' >> $configscript
 echo '	echo "Thank you!  We saved "$paircounter" pairs."' >> $configscript
-echo '	sudo systemctl restart '$daemonname'.service' >> $configscript
+echo '	sudo systemctl restart '$DAEMONNAME'.service' >> $configscript
 echo '	echo "Changes should take effect now."' >> $configscript
 echo 'else' >> $configscript
 echo '	echo "Cancelled, no data saved."' >> $configscript
@@ -448,33 +453,33 @@ chmod 755 $configscript
 
 
 systemctl daemon-reload
-systemctl enable $daemonname.service
+systemctl enable $DAEMONNAME.service
 
-systemctl start $daemonname.service
+systemctl start $DAEMONNAME.service
 
-if [[ -d "/home/$user/Desktop" ]]; then
+if [[ -d "/home/$USERNAME/Desktop" ]]; then
   wget http://download.argon40.com/ar1config.png -O /usr/share/pixmaps/ar1config.png
   wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
 
   # Create Shortcuts
-  shortcutfile="/home/$user/Desktop/argonone-config.desktop"
+  shortcutfile="/home/$USERNAME/Desktop/argonone-config.desktop"
   echo "[Desktop Entry]" > $shortcutfile
   echo "Name=Argon One Configuration" >> $shortcutfile
   echo "Comment=Argon One Configuration" >> $shortcutfile
   echo "Icon=/usr/share/pixmaps/ar1config.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/$user/ -e '$configscript >> $shortcutfile
+  echo 'Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/$USERNAME/ -e '$configscript >> $shortcutfile
   echo "Type=Application" >> $shortcutfile
   echo "Encoding=UTF-8" >> $shortcutfile
   echo "Terminal=false" >> $shortcutfile
   echo "Categories=None;" >> $shortcutfile
   chmod 755 $shortcutfile
 
-  shortcutfile="/home/$user/Desktop/argonone-uninstall.desktop"
+  shortcutfile="/home/$USERNAME/Desktop/argonone-uninstall.desktop"
   echo "[Desktop Entry]" > $shortcutfile
   echo "Name=Argon One Uninstall" >> $shortcutfile
   echo "Comment=Argon One Uninstall" >> $shortcutfile
   echo "Icon=/usr/share/pixmaps/ar1uninstall.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/$user/ -e '$removescript >> $shortcutfile
+  echo 'Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/$USERNAME/ -e '$removescript >> $shortcutfile
   echo "Type=Application" >> $shortcutfile
   echo "Encoding=UTF-8" >> $shortcutfile
   echo "Terminal=false" >> $shortcutfile
@@ -488,10 +493,10 @@ echo <<EOT
  Argon One Setup Completed.
 ****************************
 EOT
-if [[ -d "/home/$user/Desktop" ]]; then
-  echo "Shortcuts created in your desktop."
+if [[ -d "/home/$USERNAME/Desktop" ]]; then
+  echo Shortcuts created in your desktop.
 else
-  echo "Use 'argonone-config' to configure fan"
-  echo "Use 'argonone-uninstall' to uninstall"
+  echo Use 'argonone-config' to configure fan
+  echo Use 'argonone-uninstall' to uninstall
 fi
 echo
