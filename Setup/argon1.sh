@@ -8,7 +8,7 @@ fi
 readonly USERNAME="pi"
 readonly DAEMONNAME="argononed"
 
-function argon_create_file() {
+function argon::create_file() {
   local file=$1
   if [[ -f ${file} ]]; then
     rm ${file}
@@ -17,19 +17,20 @@ function argon_create_file() {
   chmod 666 ${file}
 }
 
-function argon_check_pkg() {
+function argon::check_pkg() {
   local package_name=$1
   result=$(dpkg-query -W -f='${Status}\n' "${package_name}" 2> /dev/null | grep "installed")
   [[ "${result}" != "" ]] && echo "ok"
   false
 }
 
-function argon_install_required_packages() {
+function argon::install_required_packages() {
   # package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
   local package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
+  pip install RPi.GPIO
   for package_name in ${package_list[@]}; do
     #apt-get install -y ${package_name}
-    if [[ ! $(argon_check_pkg ${package_name}) ]]; then
+    if [[ ! $(argon::check_pkg ${package_name}) ]]; then
       cat <<-EOT
 			********************************************************************
 			Please also connect device to the internet and restart installation.
@@ -38,10 +39,49 @@ EOT
       exit
     fi
   done
-  pip install RPi.GPIO
 }
 
-argon_install_required_packages;
+function argon::create_config_file() {
+  local daemonconfigfile=$1
+  if [[ ! -f ${daemonconfigfile} ]]; then
+    # config file for fan speed
+    argon::create_file ${daemonconfigfile}
+
+    cat <<-EOT > ${daemonconfigfile}
+		#
+		# Argon One Fan Configuration
+		#
+		# List below the temperature (Celsius) and fan speed (in percent) pairs
+		# Use the following form:
+		# min.temperature=speed
+		#
+		# Example:
+		# 55=10
+		# 60=55
+		# 65=100
+		#
+		# Above example sets the fan speed to
+		#
+		# NOTE: Lines beginning with # are ignored
+		#
+		# Type the following at the command line for changes to take effect:
+		# sudo systemctl restart ${DAEMONNAME}.service
+		#
+		# Start below:
+		55=10
+		60=55
+		65=100
+EOT
+  fi
+}
+
+function main() {
+  local daemonconfigfile="/etc/${DAEMONNAME}.conf"
+
+  argon::install_required_packages
+  argon::create_config_file ${daemonconfigfile}
+}
+main;
 exit
 
 powerbuttonscript=/usr/bin/${DAEMONNAME}.py
@@ -54,39 +94,8 @@ daemonfanservice=/lib/systemd/system/${DAEMONNAME}.service
 raspi-config nonint do_i2c 0
 raspi-config nonint do_serial 0
 
-if [[ ! -f ${daemonconfigfile} ]]; then
-  # config file for fan speed
-  argon_create_file ${daemonconfigfile}
-
-  cat <<-EOT > ${daemonconfigfile}
-	#
-	# Argon One Fan Configuration
-	#
-	# List below the temperature (Celsius) and fan speed (in percent) pairs
-	# Use the following form:
-	# min.temperature=speed
-	#
-	# Example:
-	# 55=10
-	# 60=55
-	# 65=100
-	#
-	# Above example sets the fan speed to
-	#
-	# NOTE: Lines beginning with # are ignored
-	#
-	# Type the following at the command line for changes to take effect:
-	# sudo systemctl restart ${DAEMONNAME}.service
-	#
-	# Start below:
-	55=10
-	60=55
-	65=100
-EOT
-fi
-
 # Generate script that runs every shutdown event
-argon_create_file ${shutdownscript}
+argon::create_file ${shutdownscript}
 
 echo "#!/usr/bin/python" >> $shutdownscript
 echo 'import sys' >> $shutdownscript
@@ -109,7 +118,7 @@ chmod 755 $shutdownscript
 
 # Generate script to monitor shutdown button
 
-argon_create_file $powerbuttonscript
+argon::create_file $powerbuttonscript
 
 echo "#!/usr/bin/python" >> $powerbuttonscript
 echo 'import smbus' >> $powerbuttonscript
@@ -219,7 +228,7 @@ echo '	GPIO.cleanup()' >> $powerbuttonscript
 
 chmod 755 $powerbuttonscript
 
-argon_create_file $daemonfanservice
+argon::create_file $daemonfanservice
 
 # Fan Daemon
 echo "[Unit]" >> $daemonfanservice
@@ -235,7 +244,7 @@ echo "WantedBy=multi-user.target" >> $daemonfanservice
 
 chmod 644 $daemonfanservice
 
-argon_create_file $removescript
+argon::create_file $removescript
 
 # Uninstall Script
 echo '#!/bin/bash' >> $removescript
@@ -272,7 +281,7 @@ echo 'fi' >> $removescript
 
 chmod 755 $removescript
 
-argon_create_file $configscript
+argon::create_file $configscript
 
 # Config Script
 echo '#!/bin/bash' >> $configscript
