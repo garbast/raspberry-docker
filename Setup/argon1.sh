@@ -1,78 +1,87 @@
 #!/bin/bash
 
-argon_create_file() {
-  if [ -f $1 ]; then
-    sudo rm $1
-  fi
-  sudo touch $1
-  sudo chmod 666 $1
-}
-argon_check_pkg() {
-  RESULT=$(dpkg-query -W -f='${Status}\n' "$1" 2> /dev/null | grep "installed")
+if [[ $EUID -ne 0 ]]; then
+  echo "This script must be run with sudo"
+  exit 1
+fi
 
-  if [ "" == "$RESULT" ]; then
-    echo "NG"
-  else
-    echo "OK"
+function argon_create_file() {
+  file=$1
+  if [[ -f ${file} ]]; then
+    rm ${file}
   fi
+  touch ${file}
+  chmod 666 ${file}
 }
 
-pkglist=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
-for curpkg in ${pkglist[@]}; do
-  sudo apt-get install -y $curpkg
-  RESULT=$(argon_check_pkg "$curpkg")
-  if [ "NG" == "$RESULT" ]
-  then
-    echo "********************************************************************"
-    echo "Please also connect device to the internet and restart installation."
-    echo "********************************************************************"
+function argon_check_pkg() {
+  package_name=$1
+  result=$(dpkg-query -W -f='${Status}\n' "${package_name}" 2> /dev/null | grep "installed")
+  [[ "${result}" != "" ]] && echo "ok"
+  false
+}
+
+# package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
+package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
+for package_name in ${package_list[@]}; do
+  apt-get install -y ${package_name}
+  if [[ ! $(argon_check_pkg ${package_name}) ]]; then
+    cat <<-EOT
+		********************************************************************
+		Please also connect device to the internet and restart installation.
+		********************************************************************
+EOT
     exit
   fi
 done
+pip install RPi.GPIO
 
+user="pi"
 daemonname="argononed"
-powerbuttonscript=/usr/bin/$daemonname.py
-shutdownscript="/lib/systemd/system-shutdown/"$daemonname"-poweroff.py"
-daemonconfigfile=/etc/$daemonname.conf
+powerbuttonscript=/usr/bin/${daemonname}.py
+shutdownscript="/lib/systemd/system-shutdown/$daemonname-poweroff.py"
+daemonconfigfile=/etc/${daemonname}.conf
 configscript=/usr/bin/argonone-config
 removescript=/usr/bin/argonone-uninstall
 
-daemonfanservice=/lib/systemd/system/$daemonname.service
+daemonfanservice=/lib/systemd/system/${daemonname}.service
 
-sudo raspi-config nonint do_i2c 0
-sudo raspi-config nonint do_serial 0
+raspi-config nonint do_i2c 0
+raspi-config nonint do_serial 0
 
-if [ ! -f $daemonconfigfile ]; then
+if [[ ! -f ${daemonconfigfile} ]]; then
   # Generate config file for fan speed
-  sudo touch $daemonconfigfile
-  sudo chmod 666 $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# Argon One Fan Configuration' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# List below the temperature (Celsius) and fan speed (in percent) pairs' >> $daemonconfigfile
-  echo '# Use the following form:' >> $daemonconfigfile
-  echo '# min.temperature=speed' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# Example:' >> $daemonconfigfile
-  echo '# 55=10' >> $daemonconfigfile
-  echo '# 60=55' >> $daemonconfigfile
-  echo '# 65=100' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# Above example sets the fan speed to' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# NOTE: Lines begining with # are ignored' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# Type the following at the command line for changes to take effect:' >> $daemonconfigfile
-  echo '# sudo systemctl restart '$daemonname'.service' >> $daemonconfigfile
-  echo '#' >> $daemonconfigfile
-  echo '# Start below:' >> $daemonconfigfile
-  echo '55=10' >> $daemonconfigfile
-  echo '60=55' >> $daemonconfigfile
-  echo '65=100' >> $daemonconfigfile
+  touch ${daemonconfigfile}
+  chmod 666 ${daemonconfigfile}
+  cat <<-EOT > ${daemonconfigfile}
+	#
+	# Argon One Fan Configuration
+	#
+	# List below the temperature (Celsius) and fan speed (in percent) pairs
+	# Use the following form:
+	# min.temperature=speed
+	#
+	# Example:
+	# 55=10
+	# 60=55
+	# 65=100
+	#
+	# Above example sets the fan speed to
+	#
+	# NOTE: Lines beginning with # are ignored
+	#
+	# Type the following at the command line for changes to take effect:
+	# sudo systemctl restart ${daemonname}.service
+	#
+	# Start below:
+	55=10
+	60=55
+	65=100
+EOT
 fi
 
 # Generate script that runs every shutdown event
-argon_create_file $shutdownscript
+argon_create_file ${shutdownscript}
 
 echo "#!/usr/bin/python" >> $shutdownscript
 echo 'import sys' >> $shutdownscript
@@ -91,7 +100,7 @@ echo "		try:"  >> $shutdownscript
 echo "			bus.write_byte(0x1a,0xFF)"  >> $shutdownscript
 echo "		except:"  >> $shutdownscript
 echo "			rev=0"  >> $shutdownscript
-sudo chmod 755 $shutdownscript
+chmod 755 $shutdownscript
 
 # Generate script to monitor shutdown button
 
@@ -203,7 +212,7 @@ echo '	t1.stop()' >> $powerbuttonscript
 echo '	t2.stop()' >> $powerbuttonscript
 echo '	GPIO.cleanup()' >> $powerbuttonscript
 
-sudo chmod 755 $powerbuttonscript
+chmod 755 $powerbuttonscript
 
 argon_create_file $daemonfanservice
 
@@ -219,7 +228,7 @@ echo "ExecStart=/usr/bin/python3 $powerbuttonscript" >> $daemonfanservice
 echo '[Install]' >> $daemonfanservice
 echo "WantedBy=multi-user.target" >> $daemonfanservice
 
-sudo chmod 644 $daemonfanservice
+chmod 644 $daemonfanservice
 
 argon_create_file $removescript
 
@@ -241,9 +250,9 @@ echo 'then' >> $removescript
 echo '	echo "Cancelled"' >> $removescript
 echo '	exit' >> $removescript
 echo 'fi' >> $removescript
-echo 'if [ -d "/home/pi/Desktop" ]; then' >> $removescript
-echo '	sudo rm "/home/pi/Desktop/argonone-config.desktop"' >> $removescript
-echo '	sudo rm "/home/pi/Desktop/argonone-uninstall.desktop"' >> $removescript
+echo 'if [ -d "/home/$user/Desktop" ]; then' >> $removescript
+echo '	sudo rm "/home/$user/Desktop/argonone-config.desktop"' >> $removescript
+echo '	sudo rm "/home/$user/Desktop/argonone-uninstall.desktop"' >> $removescript
 echo 'fi' >> $removescript
 echo 'if [ -f '$powerbuttonscript' ]; then' >> $removescript
 echo '	sudo systemctl stop '$daemonname'.service' >> $removescript
@@ -256,7 +265,7 @@ echo '	echo "Removed Argon One Services."' >> $removescript
 echo '	echo "Cleanup will complete after restarting the device."' >> $removescript
 echo 'fi' >> $removescript
 
-sudo chmod 755 $removescript
+chmod 755 $removescript
 
 argon_create_file $configscript
 
@@ -435,36 +444,37 @@ echo 'else' >> $configscript
 echo '	echo "Cancelled, no data saved."' >> $configscript
 echo 'fi' >> $configscript
 
-sudo chmod 755 $configscript
+chmod 755 $configscript
 
 
-sudo systemctl daemon-reload
-sudo systemctl enable $daemonname.service
+systemctl daemon-reload
+systemctl enable $daemonname.service
 
-sudo systemctl start $daemonname.service
+systemctl start $daemonname.service
 
-if [ -d "/home/pi/Desktop" ]; then
-  sudo wget http://download.argon40.com/ar1config.png -O /usr/share/pixmaps/ar1config.png
-  sudo wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
+if [[ -d "/home/$user/Desktop" ]]; then
+  wget http://download.argon40.com/ar1config.png -O /usr/share/pixmaps/ar1config.png
+  wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
+
   # Create Shortcuts
-  shortcutfile="/home/pi/Desktop/argonone-config.desktop"
+  shortcutfile="/home/$user/Desktop/argonone-config.desktop"
   echo "[Desktop Entry]" > $shortcutfile
   echo "Name=Argon One Configuration" >> $shortcutfile
   echo "Comment=Argon One Configuration" >> $shortcutfile
   echo "Icon=/usr/share/pixmaps/ar1config.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/pi/ -e '$configscript >> $shortcutfile
+  echo 'Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/$user/ -e '$configscript >> $shortcutfile
   echo "Type=Application" >> $shortcutfile
   echo "Encoding=UTF-8" >> $shortcutfile
   echo "Terminal=false" >> $shortcutfile
   echo "Categories=None;" >> $shortcutfile
   chmod 755 $shortcutfile
 
-  shortcutfile="/home/pi/Desktop/argonone-uninstall.desktop"
+  shortcutfile="/home/$user/Desktop/argonone-uninstall.desktop"
   echo "[Desktop Entry]" > $shortcutfile
   echo "Name=Argon One Uninstall" >> $shortcutfile
   echo "Comment=Argon One Uninstall" >> $shortcutfile
   echo "Icon=/usr/share/pixmaps/ar1uninstall.png" >> $shortcutfile
-  echo 'Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/pi/ -e '$removescript >> $shortcutfile
+  echo 'Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/$user/ -e '$removescript >> $shortcutfile
   echo "Type=Application" >> $shortcutfile
   echo "Encoding=UTF-8" >> $shortcutfile
   echo "Terminal=false" >> $shortcutfile
@@ -473,14 +483,15 @@ if [ -d "/home/pi/Desktop" ]; then
 fi
 
 
-echo "***************************"
-echo "Argon One Setup Completed."
-echo "***************************"
-echo
-if [ -d "/home/pi/Desktop" ]; then
-  echo Shortcuts created in your desktop.
+echo <<EOT
+****************************
+ Argon One Setup Completed.
+****************************
+EOT
+if [[ -d "/home/$user/Desktop" ]]; then
+  echo "Shortcuts created in your desktop."
 else
-  echo Use 'argonone-config' to configure fan
-  echo Use 'argonone-uninstall' to uninstall
+  echo "Use 'argonone-config' to configure fan"
+  echo "Use 'argonone-uninstall' to uninstall"
 fi
 echo
