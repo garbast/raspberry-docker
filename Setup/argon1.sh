@@ -427,7 +427,7 @@ function argon::create_config_script() {
 
 	echo
 	if [[ \$paircounter -gt 0 ]]; then
-	    echo "Thank you!  We saved \$paircounter pairs."
+	    echo "Thank you! We saved \$paircounter pairs."
 	    sudo systemctl restart ${DAEMONNAME}.service
 	    echo 'Changes should take effect now.'
 	else
