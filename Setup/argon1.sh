@@ -54,7 +54,7 @@ function argon::create_daemonconfig_file() {
   if [[ ! -f ${daemonconfigfile} ]]; then
     argon::create_file ${daemonconfigfile} 666
 
-    cat <<-EOT > ${daemonconfigfile}
+    cat > ${daemonconfigfile} <<-EOT
 		#
 		# Argon One Fan Configuration
 		#
@@ -87,7 +87,7 @@ function argon::create_shutdown_script() {
   local shutdownscript=$1
   argon::create_file ${shutdownscript} 755
 
-  cat <<-EOT > ${shutdownscript}
+  cat > ${shutdownscript} <<-EOT
 		#!/usr/bin/python
 		import sys
 		import smbus
@@ -115,7 +115,7 @@ function argon::create_powerbutton_script() {
   local daemonconfigfile=$2
   argon::create_file ${powerbuttonscript} 755
 
-  cat <<-EOT > ${powerbuttonscript}
+  cat > ${powerbuttonscript} <<-EOT
 	#!/usr/bin/python
 	import smbus
 	import RPi.GPIO as GPIO
@@ -224,7 +224,7 @@ function argon::create_fan_service() {
   powerbuttonscript=$2
   argon::create_file ${daemonfanservice} 644
 
-  cat <<-EOT > ${daemonfanservice}
+  cat > ${daemonfanservice} <<-EOT
 [Unit]
 Description=Argon One Fan and Button Service
 After=multi-user.target
@@ -245,7 +245,7 @@ function argon::create_uninstall_script() {
   local shutdownscript=$3
   argon::create_file ${removescript} 755
 
-  cat <<-EOT > ${removescript}
+  cat > ${removescript} <<-EOT
 	#!/bin/bash
 	echo '-------------------------'
 	echo 'Argon One Uninstall Tool'
@@ -286,7 +286,7 @@ function argon::create_config_script() {
   local daemonconfigfile=$2
   argon::create_file ${configscript} 755
 
-  cat <<-EOT > ${configscript}
+  cat > ${configscript} <<-EOT
 	#!/bin/bash
 	daemonconfigfile='${daemonconfigfile}'
 	echo '--------------------------------------'
@@ -480,7 +480,7 @@ function argon::create_desktop_shortcut() {
     local configshortcutfile="/home/${USERNAME}/Desktop/argonone-config.desktop"
     argon::create_file ${configshortcutfile} 755
 
-    cat <<-EOT > ${configshortcutfile}
+    cat > ${configshortcutfile} <<-EOT
 		[Desktop Entry]
 		Name=Argon One Configuration
 		Comment=Argon One Configuration
@@ -495,7 +495,7 @@ EOT
     local uninstallshortcutfile="/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
     argon::create_file ${uninstallshortcutfile} 755
 
-    cat <<-EOT > ${uninstallshortcutfile}
+    cat > ${uninstallshortcutfile} <<-EOT
 		[Desktop Entry]
 		Name=Argon One Uninstall
 		Comment=Argon One Uninstall
