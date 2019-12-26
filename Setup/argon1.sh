@@ -105,7 +105,7 @@ function argon::create_shutdown_script() {
 		        try:
 		            bus.write_byte(0x1a,0xFF)
 		        except:
-		            rev=0"
+		            rev=0
 EOT
 }
 
