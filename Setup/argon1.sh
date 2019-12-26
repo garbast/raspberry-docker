@@ -1,12 +1,12 @@
 #!/bin/bash
 
 if [[ $EUID -ne 0 ]]; then
-  echo "This script must be run with sudo"
+  echo 'This script must be run with sudo'
   exit 1
 fi
 
-readonly USERNAME="ubuntu"
-readonly DAEMONNAME="argononed"
+readonly USERNAME='ubuntu'
+readonly DAEMONNAME='argononed'
 
 function argon::create_file() {
   local file=$1
@@ -20,14 +20,14 @@ function argon::create_file() {
 
 function argon::check_pkg() {
   local package_name=$1
-  result=$(dpkg-query -W -f='${Status}\n' "${package_name}" 2> /dev/null | grep "installed")
-  [[ "${result}" != "" ]] && echo "ok"
+  result=$(dpkg-query -W -f='${Status}\n' ${package_name} 2> /dev/null | grep 'installed')
+  [[ ${result} != '' ]] && echo 'ok'
   false
 }
 
 function argon::install_required_packages() {
   # package_list=(raspi-gpio python-rpi.gpio python3-rpi.gpio python-smbus python3-smbus i2c-tools)
-  local package_list=(python-rpi.gpio python3-rpi.gpio python3-smbus i2c-tools)
+  local package_list=('python-rpi.gpio' 'python3-rpi.gpio' 'python3-smbus' 'i2c-tools')
   pip install RPi.GPIO
   pip install smbus
   for package_name in ${package_list[@]}; do
@@ -48,10 +48,10 @@ function argon::change_raspi_config() {
   raspi-config nonint do_serial 0
 }
 
+# config file for fan speed
 function argon::create_daemonconfig_file() {
   local daemonconfigfile=$1
   if [[ ! -f ${daemonconfigfile} ]]; then
-    # config file for fan speed
     argon::create_file ${daemonconfigfile} 666
 
     cat <<-EOT > ${daemonconfigfile}
@@ -101,7 +101,7 @@ function argon::create_shutdown_script() {
 
 		if len(sys.argv)>1:
 		    bus.write_byte(0x1a,0)
-		    if sys.argv[1] == "poweroff" or sys.argv[1] == "halt":
+		    if sys.argv[1] == 'poweroff' or sys.argv[1] == 'halt':
 		        try:
 		            bus.write_byte(0x1a,0xFF)
 		        except:
@@ -140,12 +140,12 @@ function argon::create_powerbutton_script() {
 	            time.sleep(0.01)
 	            pulsetime += 1
 	        if pulsetime >=2 and pulsetime <=3:
-	            os.system("reboot")
+	            os.system('reboot')
 	        elif pulsetime >=4 and pulsetime <=5:
-	            os.system("shutdown now -h")
+	            os.system('shutdown now -h')
 	def get_fanspeed(tempval, configlist):
 	    for curconfig in configlist:
-	        curpair = curconfig.split("=")
+	        curpair = curconfig.split('=')
 	        tempcfg = float(curpair[0])
 	        fancfg = int(float(curpair[1]))
 	        if tempval >= tempcfg:
@@ -154,16 +154,16 @@ function argon::create_powerbutton_script() {
 	def load_config(fname):
 	    newconfig = []
 	    try:
-	        with open(fname, "r") as fp:
+	        with open(fname, 'r') as fp:
 	            for curline in fp:
 	                if not curline:
 	                    continue
 	                tmpline = curline.strip()
 	                if not tmpline:
 	                    continue
-	                if tmpline[0] == "#":
+	                if tmpline[0] == '#':
 	                    continue
-	                tmppair = tmpline.split("=")
+	                tmppair = tmpline.split('=')
 	                if len(tmppair) != 2:
 	                    continue
 	                tempval = 0
@@ -187,16 +187,16 @@ function argon::create_powerbutton_script() {
 	        return []
 	    return newconfig
 	def temp_check():
-	    fanconfig = ["65=100", "60=55", "55=10"]
+	    fanconfig = ['65=100', '60=55', '55=10']
 	    tmpconfig = load_config("${daemonconfigfile}")
 	    if len(tmpconfig) > 0:
 	        fanconfig = tmpconfig
 	    address=0x1a
 	    prevblock=0
 	    while True:
-	        temp = os.popen("vcgencmd measure_temp").readline()
-	        temp = temp.replace("temp=","")
-	        val = float(temp.replace("'C",""))
+	        temp = os.popen('vcgencmd measure_temp').readline()
+	        temp = temp.replace('temp=', '')
+	        val = float(temp.replace("'C", ''))
 	        block = get_fanspeed(val, fanconfig)
 	        if block < prevblock:
 	            time.sleep(30)
@@ -204,7 +204,7 @@ function argon::create_powerbutton_script() {
 	        try:
 	            bus.write_byte(address,block)
 	        except IOError:
-	            temp=""
+	            temp=''
 	        time.sleep(30)
 	try:
 	    t1 = Thread(target = shutdown_check)
@@ -247,20 +247,20 @@ function argon::create_uninstall_script() {
 
   cat <<-EOT > ${removescript}
 	#!/bin/bash
-	echo "-------------------------"
-	echo "Argon One Uninstall Tool"
-	echo "-------------------------"
-	echo -n "Press Y to continue:"
+	echo '-------------------------'
+	echo 'Argon One Uninstall Tool'
+	echo '-------------------------'
+	echo -n 'Press Y to continue:'
 	read -n 1 confirm
 	echo
-	if [ "\$confirm" = "y" ]
+	if [ \$confirm = 'y' ]
 	then
-	    confirm="Y"
+	    confirm='Y'
 	fi
 
-	if [ "\$confirm" != "Y" ]
+	if [ \$confirm != 'Y' ]
 	then
-	    echo "Cancelled"
+	    echo 'Cancelled'
 	    exit
 	fi
 	if [ -d "/home/${USERNAME}/Desktop" ]; then
@@ -274,8 +274,8 @@ function argon::create_uninstall_script() {
 	    sudo rm ${powerbuttonscript}
 	    sudo rm ${shutdownscript}
 	    sudo rm ${removescript}
-	    echo "Removed Argon One Services."
-	    echo "Cleanup will complete after restarting the device."
+	    echo 'Removed Argon One Services.'
+	    echo 'Cleanup will complete after restarting the device.'
 	fi
 EOT
 }
@@ -288,48 +288,48 @@ function argon::create_config_script() {
 
   cat <<-EOT > ${configscript}
 	#!/bin/bash
-	daemonconfigfile=/etc/${DAEMONNAME}.conf
-	echo "--------------------------------------"
-	echo "Argon One Fan Speed Configuration Tool"
-	echo "--------------------------------------"
-	echo "WARNING: This will remove existing configuration."
-	echo -n "Press Y to continue:"
+	daemonconfigfile='${daemonconfigfile}'
+	echo '--------------------------------------'
+	echo 'Argon One Fan Speed Configuration Tool'
+	echo '--------------------------------------'
+	echo 'WARNING: This will remove existing configuration.'
+	echo -n 'Press Y to continue:'
 	read -n 1 confirm
 	echo
-	if [ "\$confirm" = "y" ]
+	if [ \$confirm = 'y' ]
 	then
-	    confirm="Y"
+	    confirm='Y'
 	fi
 
-	if [ "\$confirm" != "Y" ]
+	if [ \$confirm != 'Y' ]
 	then
-	    echo "Cancelled"
+	    echo 'Cancelled'
 	    exit
 	fi
-	echo "Thank you."
+	echo 'Thank you.'
 
 	get_number () {
 	    read curnumber
 	    re="^[0-9]+$"
 	    if [ -z "\$curnumber" ]
 	    then
-	        echo "-2"
+	        echo '-2'
 	        return
 	    elif [[ \$curnumber =~ ^[+-]?[0-9]+$ ]]
 	    then
 	        if [ \$curnumber -lt 0 ]
 	        then
-	            echo "-1"
+	            echo '-1'
 	            return
 	        elif [ \$curnumber -gt 100 ]
 	        then
-	            echo "-1"
+	            echo '-1'
 	            return
 	        fi
 	        echo \$curnumber
 	        return
 	    fi
-	    echo "-1"
+	    echo '-1'
 	    return
 	}
 
@@ -338,13 +338,13 @@ function argon::create_config_script() {
 	while [ \$loopflag -eq 1 ]
 	do
 	    echo
-	    echo "Select fan mode:"
-	    echo "  1. Always on"
-	    echo "  2. Adjust to temperatures (55C, 60C, and 65C)"
-	    echo "  3. Customize behavior"
-	    echo "  4. Cancel"
-	    echo "NOTE: You can also edit ${daemonconfigfile} directly"
-	    echo -n "Enter Number (1-4):"
+	    echo 'Select fan mode:'
+	    echo '  1. Always on'
+	    echo '  2. Adjust to temperatures (55C, 60C, and 65C)'
+	    echo '  3. Customize behavior'
+	    echo '  4. Cancel'
+	    echo 'NOTE: You can also edit ${daemonconfigfile} directly'
+	    echo -n 'Enter Number (1-4):'
 	    newmode=\$( get_number )
 	    if [[ \$newmode -ge 1 && \$newmode -le 4 ]]
 	    then
@@ -355,48 +355,48 @@ function argon::create_config_script() {
 	echo
 	if [ \$newmode -eq 4 ]
 	then
-	    echo "Cancelled"
+	    echo 'Cancelled'
 	    exit
 	elif [ \$newmode -eq 1 ]
 	then
-	    echo "#" > ${daemonconfigfile}
-	    echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
-	    echo "#" >> ${daemonconfigfile}
-	    echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
-	    echo 1"="100 >> ${daemonconfigfile}
+	    echo '#' > ${daemonconfigfile}
+	    echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
+	    echo '#' >> ${daemonconfigfile}
+	    echo '# Min Temp=Fan Speed' >> ${daemonconfigfile}
+	    echo '1=100' >> ${daemonconfigfile}
 	    sudo systemctl restart ${DAEMONNAME}.service
-	    echo "Fan always on."
+	    echo 'Fan always on.'
 	    exit
 	elif [ \$newmode -eq 2 ]
 	then
-	    echo "Please provide fan speeds for the following temperatures:"
-	    echo "#" > ${daemonconfigfile}
-	    echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
-	    echo "#" >> ${daemonconfigfile}
-	    echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
+	    echo 'Please provide fan speeds for the following temperatures:'
+	    echo '#' > ${daemonconfigfile}
+	    echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
+	    echo '#' >> ${daemonconfigfile}
+	    echo '# Min Temp=Fan Speed' >> ${daemonconfigfile}
 	    curtemp=55
 	    while [ \$curtemp -lt 70 ]
 	    do
 	        errorfanflag=1
 	        while [ \$errorfanflag -eq 1 ]
 	        do
-	            echo -n ""\$curtemp"C (0-100 only):"
+	            echo -n "\$curtempC (0-100 only):"
 	            curfan=\$( get_number )
 	            if [ \$curfan -ge 0 ]
 	            then
 	                errorfanflag=0
 	            fi
 	        done
-	        echo \$curtemp"="\$curfan >> ${daemonconfigfile}
+	        echo "\$curtemp=\$curfan" >> ${daemonconfigfile}
 	        curtemp=\$((curtemp+5))
 	    done
 
 	    sudo systemctl restart ${DAEMONNAME}.service
-	    echo "Configuration updated."
+	    echo 'Configuration updated.'
 	    exit
 	fi
 
-	echo "Please provide fan speeds and temperature pairs"
+	echo 'Please provide fan speeds and temperature pairs'
 	echo
 
 	loopflag=1
@@ -407,7 +407,7 @@ function argon::create_config_script() {
 	    errorfanflag=1
 	    while [ \$errortempflag -eq 1 ]
 	    do
-	        echo -n "Provide minimum temperature (in Celsius) then [ENTER]:"
+	        echo -n 'Provide minimum temperature (in Celsius) then [ENTER]:'
 	        curtemp=\$( get_number )
 	        if [ \$curtemp -ge 0 ]
 	        then
@@ -421,7 +421,7 @@ function argon::create_config_script() {
 	    done
 	    while [ \$errorfanflag -eq 1 ]
 	    do
-	        echo -n "Provide fan speed for "\$curtemp"C (0-100) then [ENTER]:"
+	        echo -n "Provide fan speed for \$curtempC (0-100) then [ENTER]:"
 	        curfan=\$( get_number )
 	        if [ \$curfan -ge 0 ]
 	        then
@@ -437,16 +437,16 @@ function argon::create_config_script() {
 	    then
 	        if [ \$paircounter -eq 0 ]
 	        then
-	            echo "#" > ${daemonconfigfile}
-	            echo "# Argon One Fan Speed Configuration" >> ${daemonconfigfile}
-	            echo "#" >> ${daemonconfigfile}
-	            echo "# Min Temp=Fan Speed" >> ${daemonconfigfile}
+	            echo '#' > ${daemonconfigfile}
+	            echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
+	            echo '#' >> ${daemonconfigfile}
+	            echo '# Min Temp=Fan Speed' >> ${daemonconfigfile}
 	        fi
-	        echo \$curtemp"="\$curfan >> ${daemonconfigfile}
+	        echo "\$curtemp=\$curfan" >> ${daemonconfigfile}
 
 	        paircounter=\$((paircounter+1))
 
-	        echo "* Fan speed will be set to "\$curfan" once temperature reaches "\$curtemp" C"
+	        echo "* Fan speed will be set to \$curfan once temperature reaches \$curtemp C"
 	        echo
 	    fi
 	done
@@ -454,11 +454,11 @@ function argon::create_config_script() {
 	echo
 	if [ \$paircounter -gt 0 ]
 	then
-	    echo "Thank you!  We saved "\$paircounter" pairs."
+	    echo "Thank you!  We saved \$paircounter pairs."
 	    sudo systemctl restart ${DAEMONNAME}.service
-	    echo "Changes should take effect now."
+	    echo 'Changes should take effect now.'
 	else
-	    echo "Cancelled, no data saved."
+	    echo 'Cancelled, no data saved.'
 	fi
 EOT
 }
@@ -485,7 +485,7 @@ function argon::create_desktop_shortcut() {
 		Name=Argon One Configuration
 		Comment=Argon One Configuration
 		Icon=/usr/share/pixmaps/ar1config.png
-		Exec=lxterminal -t "Argon One Configuration" --working-directory=/home/${USERNAME}/ -e ${configscript}
+		Exec=lxterminal -t 'Argon One Configuration' --working-directory=/home/${USERNAME}/ -e ${configscript}
 		Type=Application
 		Encoding=UTF-8
 		Terminal=false
@@ -500,7 +500,7 @@ EOT
 		Name=Argon One Uninstall
 		Comment=Argon One Uninstall
 		Icon=/usr/share/pixmaps/ar1uninstall.png
-		Exec=lxterminal -t "Argon One Uninstall" --working-directory=/home/${USERNAME}/ -e ${removescript}
+		Exec=lxterminal -t 'Argon One Uninstall' --working-directory=/home/${USERNAME}/ -e ${removescript}
 		Type=Application
 		Encoding=UTF-8
 		Terminal=false
@@ -529,8 +529,8 @@ function main() {
   local shutdownscript="/lib/systemd/system-shutdown/${DAEMONNAME}-poweroff.py"
   local powerbuttonscript="/usr/bin/${DAEMONNAME}.py"
   local daemonfanservice="/lib/systemd/system/${DAEMONNAME}.service"
-  local removescript="/usr/bin/argonone-uninstall"
-  local configscript="/usr/bin/argonone-config"
+  local removescript='/usr/bin/argonone-uninstall'
+  local configscript='/usr/bin/argonone-config'
 
   argon::install_required_packages
   argon::change_raspi_config
