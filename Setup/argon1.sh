@@ -10,11 +10,12 @@ readonly DAEMONNAME="argononed"
 
 function argon::create_file() {
   local file=$1
+  local accessmask=$2
   if [[ -f ${file} ]]; then
     rm ${file}
   fi
   touch ${file}
-  chmod 666 ${file}
+  chmod ${accessmask} ${file}
 }
 
 function argon::check_pkg() {
@@ -30,7 +31,7 @@ function argon::install_required_packages() {
   pip install RPi.GPIO
   pip install smbus
   for package_name in ${package_list[@]}; do
-    #apt-get install -y ${package_name}
+    apt-get install -y ${package_name}
     if [[ ! $(argon::check_pkg ${package_name}) ]]; then
       cat <<-EOT
 			********************************************************************
@@ -51,7 +52,7 @@ function argon::create_daemonconfig_file() {
   local daemonconfigfile=$1
   if [[ ! -f ${daemonconfigfile} ]]; then
     # config file for fan speed
-    argon::create_file ${daemonconfigfile}
+    argon::create_file ${daemonconfigfile} 666
 
     cat <<-EOT > ${daemonconfigfile}
 		#
@@ -83,8 +84,8 @@ EOT
 
 # Generate script that runs every shutdown event
 function argon::create_shutdown_script() {
-  shutdownscript=$1
-  argon::create_file ${shutdownscript}
+  local shutdownscript=$1
+  argon::create_file ${shutdownscript} 755
 
   cat <<-EOT > ${shutdownscript}
 		#!/usr/bin/python
@@ -106,14 +107,13 @@ function argon::create_shutdown_script() {
 		        except:
 		            rev=0"
 EOT
-  chmod 755 ${shutdownscript}
 }
 
 # Generate script to monitor shutdown button
 function argon::create_powerbutton_script() {
   local powerbuttonscript=$1
   local daemonconfigfile=$2
-  argon::create_file ${powerbuttonscript}
+  argon::create_file ${powerbuttonscript} 755
 
   cat <<-EOT > ${powerbuttonscript}
 	#!/usr/bin/python
@@ -216,14 +216,13 @@ function argon::create_powerbutton_script() {
 	    t2.stop()
 	    GPIO.cleanup()
 EOT
-  chmod 755 ${powerbuttonscript}
 }
 
 # Fan Daemon
 function argon::create_fan_service() {
   daemonfanservice=$1
   powerbuttonscript=$2
-  argon::create_file ${daemonfanservice}
+  argon::create_file ${daemonfanservice} 644
 
   cat <<-EOT > ${daemonfanservice}
 [Unit]
@@ -237,7 +236,6 @@ ExecStart=/usr/bin/python3 ${powerbuttonscript}
 [Install]
 WantedBy=multi-user.target
 EOT
-  chmod 644 ${daemonfanservice}
 }
 
 # Uninstall Script
@@ -245,7 +243,7 @@ function argon::create_uninstall_script() {
   local removescript=$1
   local powerbuttonscript=$2
   local shutdownscript=$3
-  argon::create_file ${removescript}
+  argon::create_file ${removescript} 755
 
   cat <<-EOT > ${removescript}
 	#!/bin/bash
@@ -280,15 +278,13 @@ function argon::create_uninstall_script() {
 	    echo "Cleanup will complete after restarting the device."
 	fi
 EOT
-
-  chmod 755 ${removescript}
 }
 
 # Config Script
 function argon::create_config_script() {
   local configscript=$1
   local daemonconfigfile=$2
-  argon::create_file ${configscript}
+  argon::create_file ${configscript} 755
 
   cat <<-EOT > ${configscript}
 	#!/bin/bash
@@ -465,8 +461,6 @@ function argon::create_config_script() {
 	    echo "Cancelled, no data saved."
 	fi
 EOT
-
-  chmod 755 ${configscript}
 }
 
 function argon::start_deamon() {
@@ -484,7 +478,7 @@ function argon::create_desktop_shortcut() {
     wget http://download.argon40.com/ar1uninstall.png -O /usr/share/pixmaps/ar1uninstall.png
 
     local configshortcutfile="/home/${USERNAME}/Desktop/argonone-config.desktop"
-    local uninstallshortcutfile="/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
+    argon::create_file ${configshortcutfile} 755
 
     cat <<-EOT > ${configshortcutfile}
 		[Desktop Entry]
@@ -497,7 +491,9 @@ function argon::create_desktop_shortcut() {
 		Terminal=false
 		Categories=None;
 EOT
-    chmod 755 ${configshortcutfile}
+
+    local uninstallshortcutfile="/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
+    argon::create_file ${uninstallshortcutfile} 755
 
     cat <<-EOT > ${uninstallshortcutfile}
 		[Desktop Entry]
@@ -510,7 +506,6 @@ EOT
 		Terminal=false
 		Categories=None;
 EOT
-    chmod 755 ${uninstallshortcutfile}
   fi
 }
 
