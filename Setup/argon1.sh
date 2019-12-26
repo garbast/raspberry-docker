@@ -253,21 +253,19 @@ function argon::create_uninstall_script() {
 	echo -n 'Press Y to continue:'
 	read -n 1 confirm
 	echo
-	if [ \$confirm = 'y' ]
-	then
+	if [[ \$confirm = 'y' ]]; then
 	    confirm='Y'
 	fi
 
-	if [ \$confirm != 'Y' ]
-	then
+	if [[ \$confirm != 'Y' ]]; then
 	    echo 'Cancelled'
 	    exit
 	fi
-	if [ -d "/home/${USERNAME}/Desktop" ]; then
+	if [[ -d "/home/${USERNAME}/Desktop" ]]; then
 	    sudo rm "/home/${USERNAME}/Desktop/argonone-config.desktop"
 	    sudo rm "/home/${USERNAME}/Desktop/argonone-uninstall.desktop"
 	fi
-	if [ -f ${powerbuttonscript} ]; then
+	if [[ -f ${powerbuttonscript} ]]; then
 	    sudo systemctl stop ${DAEMONNAME}.service
 	    sudo systemctl disable ${DAEMONNAME}.service
 	    sudo /usr/bin/python3 ${shutdownscript} uninstall
@@ -296,13 +294,11 @@ function argon::create_config_script() {
 	echo -n 'Press Y to continue:'
 	read -n 1 confirm
 	echo
-	if [ \$confirm = 'y' ]
-	then
+	if [[ \$confirm = 'y' ]]; then
 	    confirm='Y'
 	fi
 
-	if [ \$confirm != 'Y' ]
-	then
+	if [[ \$confirm != 'Y' ]]; then
 	    echo 'Cancelled'
 	    exit
 	fi
@@ -311,18 +307,14 @@ function argon::create_config_script() {
 	get_number () {
 	    read curnumber
 	    re="^[0-9]+$"
-	    if [ -z "\$curnumber" ]
-	    then
+	    if [[ -z "\$curnumber" ]]; then
 	        echo '-2'
 	        return
-	    elif [[ \$curnumber =~ ^[+-]?[0-9]+$ ]]
-	    then
-	        if [ \$curnumber -lt 0 ]
-	        then
+	    elif [[ \$curnumber =~ ^[+-]?[0-9]+$ ]]; then
+	        if [[ \$curnumber -lt 0 ]]; then
 	            echo '-1'
 	            return
-	        elif [ \$curnumber -gt 100 ]
-	        then
+	        elif [[ \$curnumber -gt 100 ]]; then
 	            echo '-1'
 	            return
 	        fi
@@ -333,10 +325,8 @@ function argon::create_config_script() {
 	    return
 	}
 
-
 	loopflag=1
-	while [ \$loopflag -eq 1 ]
-	do
+	while [[ \$loopflag -eq 1 ]]; do
 	    echo
 	    echo 'Select fan mode:'
 	    echo '  1. Always on'
@@ -346,19 +336,16 @@ function argon::create_config_script() {
 	    echo 'NOTE: You can also edit ${daemonconfigfile} directly'
 	    echo -n 'Enter Number (1-4):'
 	    newmode=\$( get_number )
-	    if [[ \$newmode -ge 1 && \$newmode -le 4 ]]
-	    then
+	    if [[ \$newmode -ge 1 && \$newmode -le 4 ]]; then
 	        loopflag=0
 	    fi
 	done
 
 	echo
-	if [ \$newmode -eq 4 ]
-	then
+	if [[ \$newmode -eq 4 ]]; then
 	    echo 'Cancelled'
 	    exit
-	elif [ \$newmode -eq 1 ]
-	then
+	elif [[ \$newmode -eq 1 ]]; then
 	    echo '#' > ${daemonconfigfile}
 	    echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
 	    echo '#' >> ${daemonconfigfile}
@@ -367,23 +354,19 @@ function argon::create_config_script() {
 	    sudo systemctl restart ${DAEMONNAME}.service
 	    echo 'Fan always on.'
 	    exit
-	elif [ \$newmode -eq 2 ]
-	then
+	elif [[ \$newmode -eq 2 ]]; then
 	    echo 'Please provide fan speeds for the following temperatures:'
 	    echo '#' > ${daemonconfigfile}
 	    echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
 	    echo '#' >> ${daemonconfigfile}
 	    echo '# Min Temp=Fan Speed' >> ${daemonconfigfile}
 	    curtemp=55
-	    while [ \$curtemp -lt 70 ]
-	    do
+	    while [[ \$curtemp -lt 70 ]]; do
 	        errorfanflag=1
-	        while [ \$errorfanflag -eq 1 ]
-	        do
+	        while [[ \$errorfanflag -eq 1 ]]; do
 	            echo -n "\$curtempC (0-100 only):"
 	            curfan=\$( get_number )
-	            if [ \$curfan -ge 0 ]
-	            then
+	            if [[ \$curfan -ge 0 ]]; then
 	                errorfanflag=0
 	            fi
 	        done
@@ -401,42 +384,33 @@ function argon::create_config_script() {
 
 	loopflag=1
 	paircounter=0
-	while [ \$loopflag -eq 1 ]
-	do
+	while [[ \$loopflag -eq 1 ]]; do
 	    errortempflag=1
 	    errorfanflag=1
-	    while [ \$errortempflag -eq 1 ]
-	    do
+	    while [[ \$errortempflag -eq 1 ]]; do
 	        echo -n 'Provide minimum temperature (in Celsius) then [ENTER]:'
 	        curtemp=\$( get_number )
-	        if [ \$curtemp -ge 0 ]
-	        then
+	        if [[ \$curtemp -ge 0 ]]; then
 	            errortempflag=0
-	        elif [ \$curtemp -eq -2 ]
-	        then
+	        elif [[ \$curtemp -eq -2 ]]; then
 	            errortempflag=0
 	            errorfanflag=0
 	            loopflag=0
 	        fi
 	    done
-	    while [ \$errorfanflag -eq 1 ]
-	    do
+	    while [[ \$errorfanflag -eq 1 ]]; do
 	        echo -n "Provide fan speed for \$curtempC (0-100) then [ENTER]:"
 	        curfan=\$( get_number )
-	        if [ \$curfan -ge 0 ]
-	        then
+	        if [[ \$curfan -ge 0 ]]; then
 	            errorfanflag=0
-	        elif [ \$curfan -eq -2 ]
-	        then
+	        elif [[ \$curfan -eq -2 ]]; then
 	            errortempflag=0
 	            errorfanflag=0
 	            loopflag=0
 	        fi
 	    done
-	    if [ \$loopflag -eq 1 ]
-	    then
-	        if [ \$paircounter -eq 0 ]
-	        then
+	    if [[ \$loopflag -eq 1 ]]; then
+	        if [[ \$paircounter -eq 0 ]]; then
 	            echo '#' > ${daemonconfigfile}
 	            echo '# Argon One Fan Speed Configuration' >> ${daemonconfigfile}
 	            echo '#' >> ${daemonconfigfile}
@@ -452,8 +426,7 @@ function argon::create_config_script() {
 	done
 
 	echo
-	if [ \$paircounter -gt 0 ]
-	then
+	if [[ \$paircounter -gt 0 ]]; then
 	    echo "Thank you!  We saved \$paircounter pairs."
 	    sudo systemctl restart ${DAEMONNAME}.service
 	    echo 'Changes should take effect now.'
