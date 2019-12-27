@@ -9,7 +9,7 @@ networks:
 
 services:
   php72:
-    image: php:7.2-fpm-alpine
+    build: Setup/PHP/7.2
     container_name: amp_php72
     restart: always
     networks:
@@ -19,13 +19,12 @@ services:
       - PGID=66
       - TZ=Europe/Berlin
     volumes:
-      - ./PHP/7.2/Config/:/etc/php/7.2/fpm/conf.d/
-      - ./PHP/7.2/Pools/:/etc/php/7.2/fpm/pool.d/
-      - ./Apache/Projects/:/var/www/html/
+      - ./Setup/PHP/7.2/:/usr/local/etc/php/
+      - ./Projects/:/var/www/html/
+      - ./Logs/:/etc/php/7.2/fpm/pool.d/
 
   apache:
-    #image: httpd:2.4-alpine
-    build: ./Apache
+    build: Setup/Apache
     container_name: amp_apache
     depends_on:
       - php72
@@ -42,11 +41,11 @@ services:
       - PGID=66
       - TZ=Europe/Berlin
     volumes:
-      - ./Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
-      - ./Apache/Projects/:/usr/local/apache2/htdocs/
+      - ./Setup/Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
+      - ./Projects/:/usr/local/apache2/htdocs/
 
   mysql:
-    image: mariadb:10.4
+    build: Setup/MariaDB
     container_name: amp_mariadb
     restart: always
     networks:
@@ -57,5 +56,5 @@ services:
       - TZ=Europe/Berlin
       - MYSQL_ROOT_PASSWORD=r0otTes!
     volumes:
-      - ./MariaDB/Databases/:/var/lib/mysql
+      - ./Databases/:/var/lib/mysql
 

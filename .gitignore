@@ -1,3 +1,4 @@
 .idea
-Apache/Projects/*
-MariaDB/Databases/*
+Projects/*
+Databases/*
+Logs/*

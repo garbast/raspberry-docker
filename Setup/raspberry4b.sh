@@ -37,3 +37,4 @@ apt install -y python python-pip python-dev
 apt remove python-configparser
 pip install docker-compose
 
+bash ./Setup/argon1.sh
