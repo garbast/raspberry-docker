@@ -60,6 +60,7 @@ services:
     volumes:
       - ./Setup/Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
       - ./Projects/:/usr/local/apache2/htdocs/
+      - ./Logs/:/usr/local/apache2/logs/
 
   mysql:
     build: Setup/MariaDB
