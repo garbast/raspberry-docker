@@ -19,15 +19,32 @@ services:
       - PGID=66
       - TZ=Europe/Berlin
     volumes:
-      - ./Setup/PHP/7.2/:/usr/local/etc/php/
+      - ./Setup/PHP/7.2/conf.d:/usr/local/etc/php/conf.d/
+      - ./Setup/PHP/7.2/pool.d:/usr/local/etc/php-fpm.d/
       - ./Projects/:/var/www/html/
-      - ./Logs/:/etc/php/7.2/fpm/pool.d/
+      - ./Logs/:/var/log/
+  php73:
+    build: Setup/PHP/7.3
+    container_name: amp_php73
+    restart: always
+    networks:
+      - amp_backend
+    environment:
+      - PUID=66
+      - PGID=66
+      - TZ=Europe/Berlin
+    volumes:
+      - ./Setup/PHP/7.3/conf.d:/usr/local/etc/php/conf.d/
+      - ./Setup/PHP/7.3/pool.d:/usr/local/etc/php-fpm.d/
+      - ./Projects/:/var/www/html/
+      - ./Logs/:/var/log/
 
   apache:
     build: Setup/Apache
     container_name: amp_apache
     depends_on:
       - php72
+      - php73
       - mysql
     restart: always
     networks:
@@ -57,4 +74,3 @@ services:
       - MYSQL_ROOT_PASSWORD=r0otTes!
     volumes:
       - ./Databases/:/var/lib/mysql
-
