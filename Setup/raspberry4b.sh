@@ -15,10 +15,13 @@ sed -i '' 's/eoan/bionic/' /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-eoan
 mv /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-eoan.list /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-bionic.list
 apt install libraspberrypi-bin
 
-copy ./Setup/usb.sh /root/
+cp ./Setup/Configuration/usb.sh /root/
 chmod 755 /root/usb.sh
 
-copy ./Setup/dnsmasq /etc/dnsmasq.d/usb
+mkdir -p /etc/systemd/system/dnsmasq.service.d/
+cp ./Setup/Configuration/dnsmasq /etc/dnsmasq.d/
+#cp ./Setup/Configuration/dnsmasq-resolved-fix.conf /etc/systemd/system/dnsmasq.service.d/
+cp ./Setup/Configuration/resolv.dnsmasq.conf /etc/
 echo "denyinterfaces usb0" >> /etc/dhcpcd.conf
 
 apt update
@@ -30,7 +33,7 @@ deb https://download.docker.com/linux/ubuntu disco stable
 EOT
 
 apt install docker-ce
-sudo usermod -aG docker ubuntu
+usermod -aG docker ubuntu
 
 apt install libffi-dev libssl-dev
 apt install -y python python-pip python-dev

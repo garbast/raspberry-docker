@@ -10,20 +10,20 @@ network:
       addresses: [192.168.20.39/24]
       gateway4: 192.168.20.1
       nameservers:
-        addresses: [8.8.8.8,8.8.4.4]
+        addresses: [127.0.0.1,8.8.8.8,8.8.4.4]
     usb0:
       dhcp4: no
       dhcp6: no
       addresses: [10.55.0.1/29]
       gateway4: 192.168.20.1
       nameservers:
-        addresses: [8.8.8.8,8.8.4.4]
+        addresses: [127.0.0.1,8.8.8.8,8.8.4.4]
   wifis:
     wlan0:
       addresses: [192.168.20.40/24]
       gateway4: 192.168.20.1
       nameservers:
-        addresses: [8.8.8.8,8.8.4.4]
+        addresses: [127.0.0.1,8.8.8.8,8.8.4.4]
       access-points:
         "SSID":
           password: "SSID_PASSWORD"

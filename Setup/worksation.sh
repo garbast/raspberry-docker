@@ -18,4 +18,4 @@ echo "libcomposite" > $FOLDER/writable/etc/modules-load.d/libcomposite.conf
 echo "g_ether" > $FOLDER/writable/etc/modules-load.d/g_ether.conf
 echo "usb_f_ecm" > $FOLDER/writable/etc/modules-load.d/usb_f_ecm.conf
 
-copy ./Setup/60-netcfg.yaml $FOLDER/writable/etc/netplan/
+cp ./Setup/Configuration/60-netcfg.yaml $FOLDER/writable/etc/netplan/

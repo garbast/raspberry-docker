@@ -1,0 +1,12 @@
+resolv-file=/etc/resolv.dnsmasq.conf
+
+listen-address=127.0.0.1
+listen-address=192.168.20.40
+
+address=/dev.local/192.168.20.40
+local=/local/
+
+interface=usb0
+dhcp-range=10.55.0.2,10.55.0.6,255.255.255.248,1h
+dhcp-option=3
+leasefile-ro
