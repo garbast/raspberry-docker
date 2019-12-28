@@ -18,11 +18,14 @@ apt install libraspberrypi-bin
 cp ./Setup/Configuration/usb.sh /root/
 chmod 755 /root/usb.sh
 
-mkdir -p /etc/systemd/system/dnsmasq.service.d/
+systemctl stop systemd-resolved
+systemctl disable systemd-resolved
+rm -v /etc/resolv.conf
+cp ./Setup/Configuration/resolv.conf /etc/
+apt install dnsmasq
 cp ./Setup/Configuration/dnsmasq /etc/dnsmasq.d/
-#cp ./Setup/Configuration/dnsmasq-resolved-fix.conf /etc/systemd/system/dnsmasq.service.d/
-cp ./Setup/Configuration/resolv.dnsmasq.conf /etc/
 echo "denyinterfaces usb0" >> /etc/dhcpcd.conf
+systemctl restart dnsmasq
 
 apt update
 apt install apt-transport-https ca-certificates curl software-properties-common
