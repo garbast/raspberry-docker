@@ -68,6 +68,8 @@ services:
     restart: always
     networks:
       - amp_backend
+    ports:
+      - "3306:3306"
     environment:
       - PUID=66
       - PGID=66
