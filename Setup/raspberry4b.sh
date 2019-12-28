@@ -38,6 +38,8 @@ EOT
 apt install docker-ce
 usermod -aG docker ubuntu
 
+echo "alias composer='docker run --rm --interactive --tty -u $UID -v `pwd`:/app composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
+
 apt install libffi-dev libssl-dev
 apt install -y python python-pip python-dev
 apt remove python-configparser
