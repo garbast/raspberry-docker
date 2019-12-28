@@ -30,6 +30,7 @@ Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 - connect to the Raspberry PI via ssh
 - clone the repository in /home/ubuntu and change into the folder
 - run ./Setup/raspberry4b.sh
+- IF you have an Argon One Case run ./Setup/argon1.sh to install control scripts
 - run docker-compose up -d
 
 ## After installation
