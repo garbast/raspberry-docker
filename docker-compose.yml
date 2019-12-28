@@ -45,7 +45,7 @@ services:
     depends_on:
       - php72
       - php73
-      - mysql
+      - mariadb
     restart: always
     networks:
       - amp_frontend
@@ -62,7 +62,7 @@ services:
       - ./Projects/:/usr/local/apache2/htdocs/
       - ./Logs/:/usr/local/apache2/logs/
 
-  mysql:
+  mariadb:
     build: Setup/MariaDB
     container_name: amp_mariadb
     restart: always
@@ -76,4 +76,6 @@ services:
       - TZ=Europe/Berlin
       - MYSQL_ROOT_PASSWORD=r0otTes!
     volumes:
-      - ./Databases/:/var/lib/mysql
+      - ./Setup/MariaDB/Config/:/etc/mysql/conf.d/
+      - ./Databases/:/var/lib/mysql/
+      - ./Logs/:/var/log/mysql/

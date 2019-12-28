@@ -24,6 +24,7 @@ Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 - first write the Ubuntu Server image to the microsd-card
 - eject and reinsert the card
 - then clone this repository and change into the folder
+- modify the MariaDB root password in docker-compose.yml
 - modify the WIFI settings in ./Setup/Configuration/60-netcfg.yaml
 - run and follow the questions ./Setup/workstation.sh
 - insert the card in the raspberry and start it up
@@ -43,7 +44,7 @@ Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 
 ## Create new project
 
-Use the ./Setup/create_project.sh script and follow the questions
+Use the script ./Setup/create_project.sh [your_project_name]
 
 Afterwards the project is available via http://**your_project_name**.dev.local/ or via ssh
 the folder ./Projects/**your_project_name**

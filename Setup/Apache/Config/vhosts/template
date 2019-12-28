@@ -1,0 +1,33 @@
+<IfModule dir_module>
+    DirectoryIndex index.html index.php
+</IfModule>
+
+#
+# This file is managed by Salt! Do not edit by hand!
+#
+<VirtualHost  *:80>
+    ServerName [project_name].dev.local
+    ServerAlias *.[project_name].dev.local
+
+    ServerAdmin webmaster@localhost
+
+    AllowEncodedSlashes Off
+
+    LogLevel warn
+    ErrorLog logs/default-error.log
+    LogFormat "%h %l %u %t \"%r\" %>s"
+    CustomLog logs/default-access.log combined
+
+    DocumentRoot /usr/local/apache2/htdocs/[project_name]/public/
+
+    SetEnv TYPO3_CONTEXT Development
+
+    ProxyPassMatch ^/(.*\.php(/.*)?)$ fcgi://php72:9001/var/www/html/[project_name]/public/$1
+
+    <Directory "/usr/local/apache2/htdocs/[project_name]/public/">
+        Options FollowSymLinks MultiViews
+        AllowOverride All
+        Order allow,deny
+        Allow from All
+    </Directory>
+</VirtualHost>
