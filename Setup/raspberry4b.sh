@@ -66,6 +66,7 @@ function install_samba() {
   apt install samba-common samba
   cp "${BASE_DIR}/Setup/Configuration/smb.conf" /etc/samba/
   systemctl restart smbd
+  smbpasswd -a ubuntu
 }
 
 function add_composer_alias() {
