@@ -115,6 +115,5 @@ function main() {
   add_composer_alias
   set_access_rights
 }
-install_zsh
-exit
+
 main
