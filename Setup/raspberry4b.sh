@@ -2,6 +2,19 @@
 
 readonly BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." > /dev/null 2>&1 && pwd )"
 
+function configure_locale() {
+  loadkeys de
+  echo 'Set keyboard to de for umlauts and special characters'
+
+  rm /etc/localtime
+  ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime
+  echo 'Set timezone to Europe/Berlin'
+  timedatectl
+
+  locale-gen de_DE.UTF-8
+  update-locale
+}
+
 function add_missing_repository_keys() {
   curl -fsSL http://archive.raspbian.org/raspbian.public.key | apt-key add -
 
@@ -79,8 +92,7 @@ function set_access_rights() {
 }
 
 function main() {
-  loadkeys de
-
+  configure_locale
   add_missing_repository_keys
   install_raspberry_components
   install_dnsmasq

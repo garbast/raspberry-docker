@@ -22,6 +22,8 @@ function config_modules() {
   echo "usb_f_ecm" > ${folder}/writable/etc/modules-load.d/usb_f_ecm.conf
 }
 
+# needed to be able to connect via network
+# change 60-netcfg.yaml before running this script
 function copy_network_configuration() {
   local folder=$1
 
