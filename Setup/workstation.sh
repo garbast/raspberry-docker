@@ -31,7 +31,7 @@ function copy_network_configuration() {
 }
 
 function create_filemount() {
-  local user=$(who | awk '{print $1}')
+  local user=$(who am i | awk '{print $1}')
   local home_dir=$( getent passwd "${user}" | cut -d: -f6 )
   local credentials_file="${home_dir}/.smbraspberrypi"
   local mount_dir='/media/raspberrypi'

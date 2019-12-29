@@ -39,6 +39,13 @@ function install_raspberry_components() {
   chmod 755 /root/usb.sh
 }
 
+function install_zsh() {
+  apt install zsh
+  chsh -s /usr/bin/zsh ubuntu
+
+  echo 'Run ./Setup/ohmyz.sh without sudo afterwards'
+}
+
 function install_git() {
   apt install git git-flow
 }
@@ -99,6 +106,7 @@ function main() {
   configure_locale
   add_missing_repository_keys
   install_raspberry_components
+  install_zsh
   install_git
   install_dnsmasq
   install_docker
@@ -107,4 +115,6 @@ function main() {
   add_composer_alias
   set_access_rights
 }
+install_zsh
+exit
 main
