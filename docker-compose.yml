@@ -15,14 +15,15 @@ services:
     networks:
       - amp_backend
     environment:
-      - PUID=66
-      - PGID=66
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.2/conf.d:/usr/local/etc/php/conf.d/
       - ./Setup/PHP/7.2/pool.d:/usr/local/etc/php-fpm.d/
       - ./Projects/:/var/www/html/
       - ./Logs/:/var/log/
+
   php73:
     build: Setup/PHP/7.3
     container_name: amp_php73
@@ -30,8 +31,8 @@ services:
     networks:
       - amp_backend
     environment:
-      - PUID=66
-      - PGID=66
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.3/conf.d:/usr/local/etc/php/conf.d/
@@ -54,8 +55,8 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - PUID=66
-      - PGID=66
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
@@ -71,8 +72,8 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - PUID=66
-      - PGID=66
+      - PUID=1000
+      - PGID=1000
       - TZ=Europe/Berlin
       - MYSQL_ROOT_PASSWORD=r0otTes!
     volumes:
