@@ -39,6 +39,10 @@ function install_raspberry_components() {
   chmod 755 /root/usb.sh
 }
 
+function install_git() {
+  apt install git git-flow
+}
+
 function install_dnsmasq() {
   systemctl stop systemd-resolved
   systemctl disable systemd-resolved
@@ -47,7 +51,7 @@ function install_dnsmasq() {
   rm -v /etc/resolv.conf
   cp "${BASE_DIR}/Setup/Configuration/resolv.conf" /etc/
 
-  apt install git dhcpcd5
+  apt install dhcpcd5
   echo 'denyinterfaces usb0' >> /etc/dhcpcd.conf
 
   apt install dnsmasq
@@ -95,6 +99,7 @@ function main() {
   configure_locale
   add_missing_repository_keys
   install_raspberry_components
+  install_git
   install_dnsmasq
   install_docker
   install_docker_compose
