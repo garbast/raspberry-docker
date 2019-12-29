@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." > /dev/null 2>&1 && pwd )"
+
 function add_missing_repository_keys() {
   curl -fsSL http://archive.raspbian.org/raspbian.public.key | apt-key add -
 
@@ -20,7 +22,7 @@ function install_raspberry_components() {
   mv /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-eoan.list /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-bionic.list
   apt install libraspberrypi-bin
 
-  cp ./Setup/Configuration/usb.sh /root/
+  cp "${BASE_DIR}/Setup/Configuration/usb.sh" /root/
   chmod 755 /root/usb.sh
 }
 
@@ -30,13 +32,13 @@ function install_dnsmasq() {
   systemctl mask systemd-resolved
 
   rm -v /etc/resolv.conf
-  cp ./Setup/Configuration/resolv.conf /etc/
+  cp "${BASE_DIR}/Setup/Configuration/resolv.conf" /etc/
 
   apt install git dhcpcd5
   echo 'denyinterfaces usb0' >> /etc/dhcpcd.conf
 
   apt install dnsmasq
-  cp ./Setup/Configuration/dnsmasq /etc/dnsmasq.d/
+  cp "${BASE_DIR}/Setup/Configuration/dnsmasq" /etc/dnsmasq.d/
   systemctl restart dnsmasq
 }
 
@@ -60,8 +62,19 @@ function install_docker_compose() {
   pip install docker-compose
 }
 
+function install_samba() {
+  apt install samba-common samba
+  cp "${BASE_DIR}/Setup/Configuration/smb.conf" /etc/samba/
+  systemctl restart smbd
+}
+
 function add_composer_alias() {
   echo "alias composer='[ -d ~/.composer ] || mkdir ~/.composer; docker run --rm --interactive --tty -u $UID -v `pwd`:/app -v ~/.composer:/tmp/.composer -e COMPOSER_HOME=/tmp/.composer composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
+}
+
+function set_access_rights() {
+  chmod -R 2775 "${BASE_DIR}/Projects/"
+  chgrp -R 66 "${BASE_DIR}/Projects/"
 }
 
 function main() {
@@ -72,6 +85,8 @@ function main() {
   install_dnsmasq
   install_docker
   install_docker_compose
+  install_samba
   add_composer_alias
+  set_access_rights
 }
 main
