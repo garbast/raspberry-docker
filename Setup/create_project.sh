@@ -56,8 +56,8 @@ function create_database() {
 
   if [[ ${db_exists} == 'not found' ]]; then
     docker exec -it amp_mariadb mysql -uroot -p${password} -e "CREATE DATABASE ${db_name} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
-    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'CREATE USER db@localhost IDENTIFIED BY "db";'
-    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'GRANT ALL PRIVILEGES ON *.* TO "db"@"localhost";'
+    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'CREATE USER db@"%" IDENTIFIED BY "db";'
+    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'GRANT ALL PRIVILEGES ON *.* TO "db"@"%";'
     docker exec -it amp_mariadb mysql -uroot -p${password} -e 'FLUSH PRIVILEGES;'
 
     echo "Database '${db_name}' created and granted access to user 'db' with password 'db'"
