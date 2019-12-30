@@ -1,6 +1,7 @@
 # WORK IN PROGRESS
 
-USB tether is not working by now so WIFI connect is needed until this is solved.\
+USB tether is not working by now so WIFI connect is needed until this is solved. https://www.reddit.com/r/raspberry_pi/comments/edsf7q/ubuntu_server_on_raspberry_pi4b_and_two_problems/
+
 Resolve does not get IPs on my machine
 
 - not working nslookup php73.dev.local
@@ -21,7 +22,7 @@ Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 
 ## Getting started
 
-- first write the Ubuntu Server image to the microsd-card
+- first write the Ubuntu Server image to the microsd-card (https://ubuntu.com/download/raspberry-pi) with Balena Edger (https://www.balena.io/etcher/)
 - eject and reinsert the card
 - then clone this repository and change into the folder
 - modify the MariaDB root password in docker-compose.yml
