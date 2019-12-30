@@ -54,17 +54,13 @@ function create_database() {
   local db_name=${PROJECT_NAME//[.]/_}
   local db_exists=$(docker exec -it amp_mariadb mysqlshow -uroot -p${password} ${db_name} | grep '| Databases |' > /dev/null && echo 'not found')
 
-  echo -n 'Please enter the PASSWORD of the new MySQL database! (example: t_dev) '
-  read db_password
-  echo
-
   if [[ ${db_exists} == 'not found' ]]; then
     docker exec -it amp_mariadb mysql -uroot -p${password} -e "CREATE DATABASE ${db_name} /*\!40100 DEFAULT CHARACTER SET utf8 */;"
-    docker exec -it amp_mariadb mysql -uroot -p${password} -e "CREATE USER ${db_name}@localhost IDENTIFIED BY '${db_password}';"
-    docker exec -it amp_mariadb mysql -uroot -p${password} -e "GRANT ALL PRIVILEGES ON ${db_name}.* TO '${db_name}'@'localhost';"
-    docker exec -it amp_mariadb mysql -uroot -p${password} -e "FLUSH PRIVILEGES;"
+    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'CREATE USER db@localhost IDENTIFIED BY "db";'
+    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'GRANT ALL PRIVILEGES ON *.* TO "db"@"localhost";'
+    docker exec -it amp_mariadb mysql -uroot -p${password} -e 'FLUSH PRIVILEGES;'
 
-    echo "Database '${db_name}' created and granted access to user '${db_name}' with password '${db_password}'"
+    echo "Database '${db_name}' created and granted access to user 'db' with password 'db'"
   fi
 }
 

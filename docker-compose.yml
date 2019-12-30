@@ -12,33 +12,27 @@ services:
     build: Setup/PHP/7.2
     container_name: amp_php72
     restart: always
+    env_file: ./Setup/Configuration/environment.yml
     networks:
       - amp_backend
-    environment:
-      - PUID=1000
-      - PGID=33
-      - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.2/conf.d:/usr/local/etc/php/conf.d/
       - ./Setup/PHP/7.2/pool.d:/usr/local/etc/php-fpm.d/
-      - ./Projects/:/var/www/html/
       - ./Logs/:/var/log/
+      - ./Projects/:/var/www/html/
 
   php73:
     build: Setup/PHP/7.3
     container_name: amp_php73
     restart: always
+    env_file: ./Setup/Configuration/environment.yml
     networks:
       - amp_backend
-    environment:
-      - PUID=1000
-      - PGID=33
-      - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.3/conf.d:/usr/local/etc/php/conf.d/
       - ./Setup/PHP/7.3/pool.d:/usr/local/etc/php-fpm.d/
-      - ./Projects/:/var/www/html/
       - ./Logs/:/var/log/
+      - ./Projects/:/var/www/html/
 
   apache:
     build: Setup/Apache
@@ -48,35 +42,28 @@ services:
       - php73
       - mariadb
     restart: always
+    env_file: ./Setup/Configuration/environment.yml
     networks:
       - amp_frontend
       - amp_backend
     ports:
       - "80:80"
       - "443:443"
-    environment:
-      - PUID=1000
-      - PGID=33
-      - TZ=Europe/Berlin
     volumes:
       - ./Setup/Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
-      - ./Projects/:/usr/local/apache2/htdocs/
       - ./Logs/:/usr/local/apache2/logs/
+      - ./Projects/:/usr/local/apache2/htdocs/
 
   mariadb:
     build: Setup/MariaDB
-    container_name: amp_mariadb
+    container_name: db
     restart: always
+    env_file: ./Setup/Configuration/environment.yml
     networks:
       - amp_backend
     ports:
       - "3306:3306"
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/Berlin
-      - MYSQL_ROOT_PASSWORD=r0otTes!
     volumes:
       - ./Setup/MariaDB/Config/:/etc/mysql/conf.d/
-      - ./Databases/:/var/lib/mysql/
       - ./Logs/:/var/log/mysql/
+      - ./Databases/:/var/lib/mysql/
