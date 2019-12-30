@@ -99,7 +99,7 @@ function add_composer_alias() {
   echo "alias composer='[ -d ~/.composer ] || mkdir ~/.composer; docker run --rm --interactive --tty -u 1000:33 -v `pwd`:/app -v ~/.composer:/tmp/.composer -e COMPOSER_HOME=/tmp/.composer composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
 }
 
-function set_access_rights() {
+function set_permissions() {
   local project_folder="${BASE_DIR}/Projects/"
 
   chgrp -R www-data ${project_folder}
@@ -118,7 +118,7 @@ function main() {
   install_docker_compose
   install_samba
   add_composer_alias
-  set_access_rights
+  set_permissions
 }
 
 main

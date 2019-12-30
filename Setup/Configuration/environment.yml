@@ -21,8 +21,10 @@ MYSQL_ROOT_PASSWORD=r0otTes!
 MYSQL_USER=db
 MYSQL_PASSWORD=db
 
+#######################################
 # PHP DEBUG
 PHP_DEBUGGER=xdebug
 
+#######################################
 # TYPO3
 TYPO3_CONTEXT=Development/Docker
