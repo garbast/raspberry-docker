@@ -8,8 +8,10 @@ function main() {
 
   curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | zsh
   git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${home_dir}/.oh-my-zsh/themes/powerlevel10k
+
   rm "${home_dir}/.zshrc"
   ln -s "${BASE_DIR}/Setup/Configuration/.zshrc" "${home_dir}/.zshrc"
+
   rm "${home_dir}/.p10k.zsh"
   ln -s "${BASE_DIR}/Setup/Configuration/.p10k.zsh" "${home_dir}/.p10k.zsh"
 }

@@ -75,7 +75,9 @@ EOT
   apt update
   apt install apt-transport-https ca-certificates curl software-properties-common
   apt install docker-ce
+
   usermod -aG docker ubuntu
+  usermod -aG www-data ubuntu
 }
 
 function install_docker_compose() {
@@ -94,12 +96,15 @@ function install_samba() {
 }
 
 function add_composer_alias() {
-  echo "alias composer='[ -d ~/.composer ] || mkdir ~/.composer; docker run --rm --interactive --tty -u $UID -v `pwd`:/app -v ~/.composer:/tmp/.composer -e COMPOSER_HOME=/tmp/.composer composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
+  echo "alias composer='[ -d ~/.composer ] || mkdir ~/.composer; docker run --rm --interactive --tty -u 1000:33 -v `pwd`:/app -v ~/.composer:/tmp/.composer -e COMPOSER_HOME=/tmp/.composer composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
 }
 
 function set_access_rights() {
-  chmod -R 2775 "${BASE_DIR}/Projects/"
-  chgrp -R 66 "${BASE_DIR}/Projects/"
+  local project_folder="${BASE_DIR}/Projects/"
+
+  chgrp -R www-data ${project_folder}
+  find ${project_folder} -type d -exec chmod 2775 {} \;
+  find ${project_folder} -type f -exec chmod 0664 {} \;
 }
 
 function main() {

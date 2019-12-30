@@ -16,7 +16,7 @@ services:
       - amp_backend
     environment:
       - PUID=1000
-      - PGID=1000
+      - PGID=33
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.2/conf.d:/usr/local/etc/php/conf.d/
@@ -32,7 +32,7 @@ services:
       - amp_backend
     environment:
       - PUID=1000
-      - PGID=1000
+      - PGID=33
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/PHP/7.3/conf.d:/usr/local/etc/php/conf.d/
@@ -56,7 +56,7 @@ services:
       - "443:443"
     environment:
       - PUID=1000
-      - PGID=1000
+      - PGID=33
       - TZ=Europe/Berlin
     volumes:
       - ./Setup/Apache/Config/vhosts/:/usr/local/apache2/conf/vhosts/
