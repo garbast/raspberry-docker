@@ -35,8 +35,10 @@ function install_raspberry_components() {
   mv /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-eoan.list /etc/apt/sources.list.d/ubuntu-raspi2-ubuntu-ppa-bionic.list
   apt install libraspberrypi-bin
 
-  cp "${BASE_DIR}/Setup/Configuration/usb.sh" /root/
-  chmod 755 /root/usb.sh
+  cp "${BASE_DIR}/Setup/Configuration/otg-network-tether.service" /lib/systemd/system/
+  cp "${BASE_DIR}/Setup/Configuration/otg-network-tether" /usr/bin/
+  chmod 755 /usr/bin/otg-network-tether
+  systemctl enable --now otg-network-tether.service
 }
 
 function install_zsh() {
