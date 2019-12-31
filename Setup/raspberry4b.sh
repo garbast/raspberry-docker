@@ -97,6 +97,13 @@ function install_samba() {
   smbpasswd -a ubuntu
 }
 
+function install_nfs() {
+  apt install nfs-kernel-server
+  cp "${BASE_DIR}/Setup/Configuration/exports" /etc/
+  exportfs -a
+  systemctl restart nfs-kernel-server
+}
+
 function add_composer_alias() {
   echo "alias composer='[ -d ~/.composer ] || mkdir ~/.composer; docker run --rm --interactive --tty -u 1000:33 -v `pwd`:/app -v ~/.composer:/tmp/.composer -e COMPOSER_HOME=/tmp/.composer composer --ignore-platform-reqs'" >> '/home/ubuntu/.bashrc'
 }
@@ -119,8 +126,8 @@ function main() {
   install_docker
   install_docker_compose
   install_samba
+  install_nfs
   add_composer_alias
   set_permissions
 }
-
 main

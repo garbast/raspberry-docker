@@ -31,6 +31,17 @@ function copy_network_configuration() {
 }
 
 function create_filemount() {
+  echo -n 'Do you want to use nfs or samba? [n,S] '
+  read -n1 type
+
+  if [[ ${type} == 's' || ${type} == 'S' ]]; then
+    create_samba_filemount
+  else
+    create_nfs_filemount
+  fi
+}
+
+function create_samba_filemount() {
   local user=$(who am i | awk '{print $1}')
   local home_dir=$( getent passwd "${user}" | cut -d: -f6 )
   local credentials_file="${home_dir}/.smbraspberrypi"
@@ -54,14 +65,28 @@ function create_filemount() {
   echo "//192.168.20.40/ubuntu ${mount_dir} cifs credentials=${credentials_file},user,noperm,noauto,_netdev 0 0" >> /etc/fstab
 }
 
+function create_nfs_filemount() {
+  local user=$(who am i | awk '{print $1}')
+  local home_dir=$( getent passwd "${user}" | cut -d: -f6 )
+  local mount_dir='/media/raspberrypi'
+
+  mkdir -p ${mount_dir}
+  chgrp users ${mount_dir}
+
+  apt install nfs-common
+
+  mount -t nfs //192.168.20.40/ubuntu ${mount_dir}
+  echo "192.168.20.40:/home ${mount_dir} nfs noauto,user,rw 0 0" >> /etc/fstab
+}
+
 function main() {
   echo -n "Folder with mounted microsd card (/media/[username]) without slash followed and [ENTER]: "
   read folder
+  echo
 
   create_raspbian_sourcelistfile ${folder}
   config_modules ${folder}
   copy_network_configuration ${folder}
   create_filemount
 }
-
 main
