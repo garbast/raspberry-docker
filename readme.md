@@ -17,6 +17,7 @@ The environment contains the following packages
 - PHP 7.3 - php:7.3-fpm-alpine
 - MariaDB - mariadb:10.4
 - Apache2.4 - httpd:2.4-alpine
+- MailCatcher  0.6.4 - MailCatcher based on ruby:2.7-alpine
 
 Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 
