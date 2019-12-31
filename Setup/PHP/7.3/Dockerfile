@@ -1,6 +1,7 @@
 FROM php:7.3-fpm-alpine
 
-RUN apk add --no-cache $PHPIZE_DEPS freetype libpng libjpeg-turbo freetype-dev libjpeg-turbo-dev libpng-dev graphicsmagick \
+RUN apk update \
+  && apk add --no-cache $PHPIZE_DEPS freetype libpng libjpeg-turbo freetype-dev libjpeg-turbo-dev libpng-dev graphicsmagick \
   && pecl install apcu xdebug \
   && docker-php-ext-configure gd \
        --with-gd \

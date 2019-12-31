@@ -67,3 +67,13 @@ services:
       - ./Setup/MariaDB/Config/:/etc/mysql/conf.d/
       - ./Logs/:/var/log/mysql/
       - ./Databases/:/var/lib/mysql/
+
+  mailcatcher:
+    build: Setup/Mailcatcher
+    container_name: mailcatcher
+    restart: always
+    ports:
+      - "1080:1080"
+    networks:
+      - amp_frontend
+      - amp_backend
