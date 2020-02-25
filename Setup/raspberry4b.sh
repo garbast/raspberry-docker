@@ -43,7 +43,7 @@ function install_raspberry_components() {
 
 function install_zsh() {
   apt install zsh
-  chsh -s /usr/bin/zsh ubuntu
+  #chsh -s /usr/bin/zsh ubuntu
 
   echo 'Run ./Setup/ohmyz.sh without sudo afterwards'
 }
