@@ -75,8 +75,14 @@ function create_nfs_filemount() {
 
   apt install nfs-common
 
-  mount -t nfs //192.168.20.40/ubuntu ${mount_dir}
+  mount -t nfs //192.168.20.40:/ubuntu ${mount_dir}
   echo "192.168.20.40:/home ${mount_dir} nfs noauto,user,rw 0 0" >> /etc/fstab
+}
+
+function activate_ssh() {
+  local folder=$1
+
+  touch ${folder}/system-boot/ssh
 }
 
 function main() {
@@ -88,5 +94,6 @@ function main() {
   config_modules ${folder}
   copy_network_configuration ${folder}
   create_filemount
+  activate_ssh ${folder}
 }
 main

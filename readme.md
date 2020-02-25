@@ -26,7 +26,7 @@ Concrete configuration you can find in the Dockerfiles and docker-compose.yml
 - first write the Ubuntu Server image to the microsd-card (https://ubuntu.com/download/raspberry-pi) with Balena Edger (https://www.balena.io/etcher/)
 - eject and reinsert the card
 - then clone this repository and change into the folder
-- modify the MariaDB root password in docker-compose.yml
+- modify the MariaDB root password in ./Setup/Configuration/environment.yml
 - modify the WIFI settings in ./Setup/Configuration/60-netcfg.yaml
 - run and follow the questions ./Setup/workstation.sh
 - insert the card in the raspberry and start it up
