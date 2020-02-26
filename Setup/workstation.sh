@@ -90,7 +90,7 @@ function main() {
   read folder
   echo
 
-  create_raspbian_sourcelistfile ${folder}
+  #create_raspbian_sourcelistfile ${folder}
   config_modules ${folder}
   copy_network_configuration ${folder}
   create_filemount
