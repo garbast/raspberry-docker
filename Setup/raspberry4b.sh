@@ -118,8 +118,8 @@ function set_permissions() {
 
 function main() {
   configure_locale
-  add_missing_repository_keys
-  install_raspberry_components
+  #add_missing_repository_keys
+  #install_raspberry_components
   install_zsh
   install_git
   install_dnsmasq
