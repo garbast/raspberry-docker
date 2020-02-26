@@ -20,8 +20,8 @@ network:
         addresses: [127.0.0.1,8.8.8.8,8.8.4.4]
   wifis:
     wlan0:
-      addresses: [192.168.20.40/24]
-      gateway4: 192.168.20.1
+      addresses: [192.168.43.43/24]
+      gateway4: 192.168.43.1
       nameservers:
         addresses: [127.0.0.1,8.8.8.8,8.8.4.4]
       access-points:
