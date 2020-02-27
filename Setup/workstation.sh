@@ -1,5 +1,7 @@
 #!/bin/bash
 
+RASPBERRY_IP="192.168.20.40"
+
 # add repository for raspbian packages
 function create_raspbian_sourcelistfile() {
   local folder=$1
@@ -9,6 +11,7 @@ function create_raspbian_sourcelistfile() {
 	# Uncomment line below then 'apt-get update' to enable 'apt-get source'
 	#deb-src [arch=armhf] http://raspbian.raspberrypi.org/raspbian/ buster main contrib non-free rpi
 EOT
+  echo "[ Add raspbian-buster repository"
 }
 
 # add modules for usb-tether
@@ -20,6 +23,7 @@ function config_modules() {
   echo "libcomposite" > ${folder}/writable/etc/modules-load.d/libcomposite.conf
   echo "g_ether" > ${folder}/writable/etc/modules-load.d/g_ether.conf
   echo "usb_f_ecm" > ${folder}/writable/etc/modules-load.d/usb_f_ecm.conf
+  echo "[ Kernel modules configured"
 }
 
 # needed to be able to connect via network
@@ -28,10 +32,11 @@ function copy_network_configuration() {
   local folder=$1
 
   cp ./Setup/Configuration/60-netcfg.yaml ${folder}/writable/etc/netplan/
+  echo "[ Network configuration copied to '${folder}/writable/etc/netplan/'"
 }
 
 function create_filemount() {
-  echo -n 'Do you want to use nfs or samba? [n,S] '
+  echo -n 'Do you want to use nfs or samba? [N,s] '
   read -n1 type
 
   if [[ ${type} == 's' || ${type} == 'S' ]]; then
@@ -61,8 +66,9 @@ function create_samba_filemount() {
   echo "password=${password}" >> ${credentials_file}
   chmod 600 ${credentials_file}
 
-  mount -t cifs -o credentials=${credentials_file} //192.168.20.40/ubuntu ${mount_dir}
-  echo "//192.168.20.40/ubuntu ${mount_dir} cifs credentials=${credentials_file},user,noperm,noauto,_netdev 0 0" >> /etc/fstab
+  mount -t cifs -o credentials=${credentials_file} //${RASPBERRY_IP}/ubuntu ${mount_dir}
+  echo "//${RASPBERRY_IP}/ubuntu ${mount_dir} cifs credentials=${credentials_file},user,noperm,noauto,_netdev 0 0" >> /etc/fstab
+  echo "[ Samba mount configured"
 }
 
 function create_nfs_filemount() {
@@ -75,20 +81,25 @@ function create_nfs_filemount() {
 
   apt install nfs-common
 
-  mount -t nfs //192.168.20.40:/ubuntu ${mount_dir}
-  echo "192.168.20.40:/home ${mount_dir} nfs noauto,user,rw 0 0" >> /etc/fstab
+  mount -t nfs //${RASPBERRY_IP}:/ubuntu ${mount_dir}
+  echo "${RASPBERRY_IP}:/home ${mount_dir} nfs noauto,user,rw 0 0" >> /etc/fstab
+  echo "[ NFS mount configured"
 }
 
 function activate_ssh() {
   local folder=$1
 
   touch ${folder}/system-boot/ssh
+  echo "[ Activate sshd"
 }
 
 function main() {
-  echo -n "Folder with mounted microsd card (/media/[username]) without slash followed and [ENTER]: "
+  local currentFolder="/media/$(logname)"
+  echo -n "Folder with mounted microsd card (/media/[username]) without slash followed or leave empty for default (${currentFolder}) and [ENTER]: "
   read folder
-  echo
+  if [[ -z ${folder} ]]; then
+    folder=${currentFolder}
+  fi
 
   #create_raspbian_sourcelistfile ${folder}
   config_modules ${folder}
