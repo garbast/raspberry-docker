@@ -43,7 +43,7 @@ function install_raspberry_components() {
 
 function install_zsh() {
   apt install zsh
-  #chsh -s /usr/bin/zsh ubuntu
+  chsh -s /usr/bin/zsh ubuntu
 
   echo 'Run ./Setup/ohmyz.sh without sudo afterwards'
 }
@@ -69,11 +69,12 @@ function install_dnsmasq() {
 }
 
 function install_docker() {
-  cat <<EOT >> /etc/apt/sources.list.d/docker-ubuntu-disco.list
-	deb https://download.docker.com/linux/ubuntu disco stable
-	# deb-src https://download.docker.com/linux/ubuntu disco stable
+  cat <<EOT >> /etc/apt/sources.list.d/docker-ubuntu-bionic.list
+	deb https://download.docker.com/linux/ubuntu bionic stable
+	# deb-src https://download.docker.com/linux/ubuntu bionic stable
 EOT
 
+  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 7EA0A9C3F273FCD8
   apt update
   apt install apt-transport-https ca-certificates curl software-properties-common
   apt install docker-ce
