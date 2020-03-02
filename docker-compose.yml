@@ -56,7 +56,7 @@ services:
 
   mariadb:
     build: Setup/MariaDB
-    container_name: db
+    container_name: amp_mariadb
     restart: always
     env_file: ./Setup/Configuration/environment.yml
     networks:
