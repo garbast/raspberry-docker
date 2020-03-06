@@ -7,9 +7,9 @@
     AllowEncodedSlashes Off
 
     LogLevel warn
-    ErrorLog logs/default-error.log
+    ErrorLog logs/[project_name]-error.log
     LogFormat "%h %l %u %t \"%r\" %>s"
-    CustomLog logs/default-access.log combined
+    CustomLog logs/[project_name]-access.log combined
 
     DocumentRoot htdocs/[project_name]/public/
 
@@ -34,9 +34,9 @@
     AllowEncodedSlashes Off
 
     LogLevel warn
-    ErrorLog logs/default-error.log
+    ErrorLog logs/[project_name]-ssl-error.log
     LogFormat "%h %l %u %t \"%r\" %>s"
-    CustomLog logs/default-access.log combined
+    CustomLog logs/[project_name]-ssl-access.log combined
 
     DocumentRoot htdocs/[project_name]/public/
 
